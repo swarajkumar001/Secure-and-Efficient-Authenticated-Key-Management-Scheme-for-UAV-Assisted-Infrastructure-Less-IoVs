@@ -15,6 +15,8 @@ shape: linear in n, and the relative ordering of the slopes.
 
 from __future__ import annotations
 
+import math
+
 import pandas as pd
 import plotly.graph_objects as go
 
@@ -50,19 +52,29 @@ def _base(fig: go.Figure, *, height: int = 430, ytitle: str = "",
           xtitle: str = "", logy: bool = False) -> go.Figure:
     fig.update_layout(
         height=height,
-        margin=dict(l=10, r=10, t=30, b=10),
+        margin=dict(l=14, r=14, t=42, b=14),
         # Transparent so the chart sits correctly in light OR dark theme.
         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color=INK3, size=12),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02,
-                    xanchor="left", x=0, font=dict(size=11)),
+        font=dict(color=INK2, size=12,
+                  family="Segoe UI, Helvetica Neue, Arial, sans-serif"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.04,
+                    xanchor="left", x=0, font=dict(size=11.5),
+                    bgcolor="rgba(0,0,0,0)"),
         hovermode="x unified",
+        hoverlabel=dict(bgcolor="white", bordercolor=RULE,
+                        font=dict(size=12, color=INK)),
     )
-    fig.update_xaxes(title=xtitle, showgrid=False, zeroline=False,
-                     linecolor=RULE, tickcolor=RULE, color=INK3)
-    fig.update_yaxes(title=ytitle, gridcolor=RULE, zeroline=False,
-                     linecolor=RULE, tickcolor=RULE, color=INK3,
-                     type="log" if logy else "linear")
+    fig.update_xaxes(
+        title=dict(text=xtitle, font=dict(size=11.5, color=INK3)),
+        showgrid=False, zeroline=False, showline=True,
+        linecolor="rgba(128,138,150,0.45)", linewidth=1.2,
+        ticks="outside", ticklen=4, tickcolor="rgba(128,138,150,0.45)",
+        color=INK3, tickfont=dict(size=11))
+    fig.update_yaxes(
+        title=dict(text=ytitle, font=dict(size=11.5, color=INK3)),
+        gridcolor=RULE, griddash="dot", zeroline=False, showline=False,
+        color=INK3, tickfont=dict(size=11),
+        type="log" if logy else "linear")
     return fig
 
 
@@ -91,26 +103,54 @@ def chart_where_the_work_happens(measured: pd.DataFrame) -> go.Figure:
     ))
 
     # --- what we measured, SOLID --------------------------------------
+    # NOTE: no area fills on this chart. The y axis is logarithmic, where
+    # "fill to zero" means fill to negative infinity - Plotly then expands the
+    # range to absurd values and every series collapses onto one line.
     wanted = [
-        ("GA (TUAV side)", "Ours: TUAV side", ACTOR_COLOUR["tuav"], 3),
         ("GA (TA side)", "Ours: TA side (paper reports none)",
-         ACTOR_COLOUR["ta"], 3),
-        ("GA (link)", "Ours: TA link", ACTOR_COLOUR["link"], 2),
+         ACTOR_COLOUR["ta"], 3.4),
+        ("GA (link)", "Ours: TA link", ACTOR_COLOUR["link"], 2.2),
+        ("GA (TUAV side)", "Ours: TUAV side", ACTOR_COLOUR["tuav"], 3.4),
     ]
+    seen: list[float] = []
     for phase, label, colour, width in wanted:
         sub = measured[measured["phase"] == phase].sort_values("n")
         if sub.empty:
             continue
+        seen.extend(v for v in sub["ms"] if v > 0)
         fig.add_trace(go.Scatter(
             x=sub["n"], y=sub["ms"], name=label, mode="lines+markers",
             line=dict(color=colour, width=width),
-            marker=dict(size=7, line=dict(color="white", width=1.5)),
-            hovertemplate=label + ": %{y:.2f} ms<extra></extra>",
+            marker=dict(size=8, line=dict(color="white", width=1.8)),
+            hovertemplate=label + ": %{y:.3g} ms<extra></extra>",
         ))
+        # Direct label at the right end, so the legend is a backup not a lookup.
+        #
+        # On a LOG axis Plotly positions annotations by the log10 of the value,
+        # not the value itself. Passing the raw number puts "200 ms" at 10^200,
+        # i.e. off the chart entirely.
+        last = sub.iloc[-1]
+        val = float(last["ms"])
+        if val <= 0:
+            continue
+        txt = f"{val:,.0f}" if val >= 10 else f"{val:.2g}"
+        fig.add_annotation(
+            x=last["n"], y=math.log10(val), xanchor="left", xshift=9,
+            showarrow=False, text=f"<b>{txt} ms</b>",
+            font=dict(size=10.5, color=colour))
 
-    return _base(fig, height=470, logy=True,
-                 xtitle="number of UAVs authenticated together (n)",
-                 ytitle="milliseconds (log scale)")
+    f = _base(fig, height=470, logy=True,
+              xtitle="number of UAVs authenticated together (n)",
+              ytitle="milliseconds (log scale)")
+    # Pin the log range to the data. Left to itself a log axis with very small
+    # values produces decades of empty space.
+    if seen:
+        lo = math.floor(math.log10(min(seen))) - 0.15
+        hi = math.ceil(math.log10(max(seen))) + 0.35
+        f.update_yaxes(range=[lo, hi])
+    # Room for the end-of-line labels, which are otherwise clipped.
+    f.update_layout(margin=dict(l=14, r=86, t=42, b=14))
+    return f
 
 
 # ---------------------------------------------------------------------------
@@ -162,9 +202,12 @@ def chart_availability_cliff(df: pd.DataFrame) -> go.Figure:
         hovertemplate="%{x:.0f}% link → %{y:.0f}% success<extra></extra>",
     ))
     fig.add_annotation(
-        x=5, y=5, text="<b>zero</b>, not degraded", showarrow=True,
-        arrowhead=0, ax=60, ay=-45, font=dict(size=12, color=RED),
-        arrowcolor=RED)
+        x=5, y=4, text="<b>zero</b> &mdash; not degraded", showarrow=True,
+        arrowhead=2, ax=72, ay=-52, font=dict(size=12.5, color=RED),
+        arrowcolor=RED, arrowwidth=1.4,
+        bgcolor="rgba(255,255,255,0.92)", borderpad=4)
+    fig.add_hline(y=50, line=dict(color="rgba(128,138,150,0.35)", width=1,
+                                  dash="dot"))
 
     fig.update_layout(title=dict(
         text="Measured on the PUBLISHED scheme - no modification needed.",
@@ -195,10 +238,13 @@ def chart_goodput(df: pd.DataFrame) -> go.Figure:
             hovertemplate=mode + ": %{y:.0f}%<extra></extra>",
         ))
 
+    fig.add_vrect(x0=0, x1=5, fillcolor="rgba(151,48,47,0.06)",
+                  line_width=0, layer="below")
     fig.add_annotation(
-        x=5, y=8, text="one forged packet in twenty<br>denies the whole swarm",
-        showarrow=True, arrowhead=0, ax=80, ay=-50,
-        font=dict(size=11, color=RED), arrowcolor=RED, align="left")
+        x=5.4, y=10, text="one forged packet in twenty<br>denies the whole swarm",
+        showarrow=True, arrowhead=2, ax=96, ay=-54, arrowwidth=1.4,
+        font=dict(size=11.5, color=RED), arrowcolor=RED, align="left",
+        bgcolor="rgba(255,255,255,0.92)", borderpad=4)
 
     fig.update_layout(title=dict(
         text="The fallback is NOT part of the published scheme - "

@@ -121,23 +121,54 @@ class SystemState:
     def active(self) -> list[UAV]:
         return [u for u in self.uavs if u.status != Status.REVOKED]
 
-    def status_banner(self) -> dict:
-        return {
-            "RSU": "OFFLINE",
-            "TUAV": "ONLINE" if (self.tuav and self.tuav.online) else "OFFLINE",
-            "TA link": (
-                f"{self.link.availability:.0%} avail / {self.link.rtt_ms:.0f} ms"
-                if self.link else "-"
-            ),
-            "UAVs": len(self.uavs),
-            "Authenticated": len(self.authenticated),
-            "Revoked": len(self.revoked),
-            "Group key": (
-                f"ACTIVE (epoch {self.tuav.key_epoch})"
-                if self.tuav and self.tuav.group_key else "none"
-            ),
-            "Backend": self.backend.FIDELITY if self.backend else "-",
-        }
+    def status_banner(self) -> list[dict]:
+        """Status cards for the header.
+
+        Each carries a `tone` so the UI can colour-code state rather than
+        printing eight identical grey boxes: 'bad' is red, 'good' green,
+        'warn' amber, 'info' neutral.
+        """
+        link_tone, link_val = "info", "-"
+        if self.link is not None:
+            if self.link.availability <= 0:
+                link_tone, link_val = "bad", "DOWN"
+            elif self.link.availability < 1.0:
+                link_tone = "warn"
+                link_val = f"{self.link.availability:.0%} · {self.link.rtt_ms:.0f} ms"
+            else:
+                link_tone = "good"
+                link_val = f"{self.link.availability:.0%} · {self.link.rtt_ms:.0f} ms"
+
+        keyed = bool(self.tuav and self.tuav.group_key)
+        n_auth = len(self.authenticated)
+
+        return [
+            {"label": "RSU", "value": "DESTROYED", "tone": "bad",
+             "note": "the premise"},
+            {"label": "TUAV", "value": "ONLINE" if (self.tuav and self.tuav.online)
+                               else "OFFLINE",
+             "tone": "good" if (self.tuav and self.tuav.online) else "bad",
+             "note": "flying base station"},
+            {"label": "TA link", "value": link_val, "tone": link_tone,
+             "note": "on the critical path"},
+            {"label": "UAVs", "value": str(len(self.uavs)), "tone": "info",
+             "note": "registered"},
+            {"label": "Authenticated", "value": str(n_auth),
+             "tone": "good" if n_auth else "info",
+             "note": f"of {len(self.uavs)}" if self.uavs else ""},
+            {"label": "Revoked", "value": str(len(self.revoked)),
+             "tone": "warn" if self.revoked else "info",
+             "note": "stale keys"},
+            {"label": "Group key",
+             "value": f"EPOCH {self.tuav.key_epoch}" if keyed else "none",
+             "tone": "good" if keyed else "info",
+             "note": f"{len(self.keyed)} holders" if keyed else "not distributed"},
+            {"label": "Backend",
+             "value": self.backend.FIDELITY if self.backend else "-",
+             "tone": "good" if (self.backend
+                                and self.backend.FIDELITY == "FAITHFUL") else "warn",
+             "note": self.backend.NAME if self.backend else ""},
+        ]
 
     def uav_table(self) -> list[dict]:
         """The ONLY projection the UI may render. Secrets never appear here."""

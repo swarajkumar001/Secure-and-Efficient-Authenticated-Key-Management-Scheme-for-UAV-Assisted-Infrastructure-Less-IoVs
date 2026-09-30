@@ -41,21 +41,89 @@ st.set_page_config(
 # ---------------------------------------------------------------- styling --
 st.markdown("""
 <style>
-  .block-container { padding-top: 2.2rem; max-width: 1400px; }
-  .stat-strip { display:flex; flex-wrap:wrap; gap:1px; background:#D5DBE2;
-                border:1px solid #D5DBE2; margin-bottom:14px; }
-  .stat-strip > div { background:#fff; padding:9px 16px; flex:1; min-width:120px; }
-  .stat-strip .l { font-size:9.5px; letter-spacing:.09em; text-transform:uppercase;
-                   color:#8A949F; font-weight:600; }
-  .stat-strip .v { font-size:15px; font-weight:700; color:#131820; }
-  .fid-faithful { background:#E3F0E9; color:#1C6B45; border:1px solid #1C6B45; }
-  .fid-abstract { background:#FBF1E4; color:#A8580A; border:1px solid #A8580A; }
-  .fid { display:inline-block; padding:3px 9px; font-size:10px; font-weight:700;
-         letter-spacing:.06em; border-radius:2px; }
-  .paper-note { border-left:3px solid #A8580A; background:#FBF1E4;
-                padding:10px 14px; font-size:13.5px; margin:8px 0; }
-  .alarm-note { border-left:3px solid #97302F; background:#FAEBEA;
-                padding:10px 14px; font-size:13.5px; margin:8px 0; }
+  :root {
+    --ink:#131820; --ink2:#55606D; --ink3:#8A949F;
+    --rule:#DCE2E8; --panel:#F4F6F9;
+    --amber:#A8580A; --amber-bg:#FCF3E7; --amber-line:#E0B77E;
+    --teal:#145D66;  --teal-bg:#E6F1F2;  --teal-line:#8FBFC4;
+    --green:#1C6B45; --green-bg:#E7F2EC; --green-line:#8CC0A4;
+    --red:#97302F;   --red-bg:#FBECEA;   --red-line:#DFA8A3;
+    --blue:#2A6DB0;  --blue-bg:#E9F1F9;
+  }
+
+  .block-container { padding-top: 2.0rem; max-width: 1480px; }
+
+  /* ---------------- masthead ---------------- */
+  .mast { display:flex; align-items:flex-start; gap:14px;
+          border-bottom:2px solid var(--ink); padding-bottom:12px;
+          margin-bottom:6px; }
+  .mast .badge { flex:none; width:46px; height:46px; border-radius:3px;
+          background:var(--amber); color:#fff; display:flex;
+          align-items:center; justify-content:center;
+          font-size:19px; font-weight:800; letter-spacing:-.04em; }
+  .mast h1 { margin:0; font-size:27px; font-weight:800; letter-spacing:-.02em;
+          line-height:1.15; color:var(--ink); }
+  .mast .sub { font-size:12.5px; color:var(--ink3); margin-top:3px;
+          line-height:1.45; }
+
+  /* ---------------- status cards ---------------- */
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(138px,1fr));
+           gap:8px; margin:14px 0 4px; }
+  .card { background:#fff; border:1px solid var(--rule); border-radius:3px;
+          padding:9px 12px 10px; position:relative; overflow:hidden; }
+  .card:before { content:""; position:absolute; left:0; top:0; bottom:0;
+          width:3px; background:var(--ink3); }
+  .card .l { font-size:9px; letter-spacing:.1em; text-transform:uppercase;
+          color:var(--ink3); font-weight:700; }
+  .card .v { font-size:17px; font-weight:800; color:var(--ink);
+          letter-spacing:-.01em; line-height:1.25; margin-top:1px; }
+  .card .n { font-size:10.5px; color:var(--ink3); margin-top:1px; }
+  .card.good:before { background:var(--green); }
+  .card.good  .v { color:var(--green); }
+  .card.warn:before { background:var(--amber); }
+  .card.warn  .v { color:var(--amber); }
+  .card.bad:before  { background:var(--red); }
+  .card.bad   .v { color:var(--red); }
+
+  /* ---------------- callouts ---------------- */
+  .note { border-left:3px solid var(--amber); background:var(--amber-bg);
+          padding:11px 15px; font-size:13.5px; margin:9px 0;
+          border-radius:0 3px 3px 0; line-height:1.55; }
+  .paper-note { border-left:3px solid var(--amber); background:var(--amber-bg);
+          padding:11px 15px; font-size:13.5px; margin:9px 0;
+          border-radius:0 3px 3px 0; line-height:1.55; }
+  .alarm-note { border-left:3px solid var(--red); background:var(--red-bg);
+          padding:11px 15px; font-size:13.5px; margin:9px 0;
+          border-radius:0 3px 3px 0; line-height:1.55; }
+  .good-note  { border-left:3px solid var(--green); background:var(--green-bg);
+          padding:11px 15px; font-size:13.5px; margin:9px 0;
+          border-radius:0 3px 3px 0; line-height:1.55; }
+
+  /* ---------------- fidelity chips ---------------- */
+  .fid { display:inline-block; padding:3px 10px; font-size:10px; font-weight:800;
+         letter-spacing:.08em; border-radius:2px; }
+  .fid-faithful { background:var(--green-bg); color:var(--green);
+                  border:1px solid var(--green-line); }
+  .fid-abstract { background:var(--amber-bg); color:var(--amber);
+                  border:1px solid var(--amber-line); }
+
+  /* ---------------- section headings ---------------- */
+  .sec { font-size:11px; font-weight:800; letter-spacing:.1em;
+         text-transform:uppercase; color:var(--ink3);
+         border-bottom:1px solid var(--rule); padding-bottom:5px;
+         margin:16px 0 9px; }
+
+  /* ---------------- tabs ---------------- */
+  .stTabs [data-baseweb="tab-list"] { gap:2px; border-bottom:1px solid var(--rule); }
+  .stTabs [data-baseweb="tab"] { height:38px; padding:0 13px; font-size:13.5px;
+         font-weight:600; color:var(--ink2); border-radius:3px 3px 0 0; }
+  .stTabs [aria-selected="true"] { color:var(--amber) !important;
+         background:var(--amber-bg); }
+
+  /* ---------------- misc ---------------- */
+  div[data-testid="stMetricValue"] { font-size:24px; font-weight:800; }
+  div[data-testid="stMetricLabel"] { font-size:11px; letter-spacing:.04em; }
+  section[data-testid="stSidebar"] { border-right:1px solid var(--rule); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -207,19 +275,29 @@ if any([do_register, do_session, do_auth, do_key, do_add, do_remove, do_update])
 
 
 # ----------------------------------------------------------------- header --
-st.markdown("## Infrastructure-Less IoV — Authenticated Key Management")
-st.caption(
-    f"Simulating: {config.PAPER['authors']}, *{config.PAPER['title']}*, "
-    f"{config.PAPER['venue']}, {config.PAPER['year']}.  "
-    f"{config.DISCLAIMER_SHORT}"
-)
+st.markdown(f"""
+<div class="mast">
+  <div class="badge">TU</div>
+  <div>
+    <h1>Infrastructure-Less IoV &mdash; Authenticated Key Management</h1>
+    <div class="sub">
+      Simulating {config.PAPER['authors']},
+      <i>{config.PAPER['title']}</i>,
+      {config.PAPER['venue']}, {config.PAPER['year']}.<br>
+      {config.DISCLAIMER_SHORT}
+    </div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
-banner = sim.status_banner()
-cells = "".join(
-    f'<div><div class="l">{k}</div><div class="v">{v}</div></div>'
-    for k, v in banner.items()
+cards = "".join(
+    f'<div class="card {c["tone"]}">'
+    f'<div class="l">{c["label"]}</div>'
+    f'<div class="v">{c["value"]}</div>'
+    f'<div class="n">{c["note"]}</div></div>'
+    for c in sim.status_banner()
 )
-st.markdown(f'<div class="stat-strip">{cells}</div>', unsafe_allow_html=True)
+st.markdown(f'<div class="cards">{cards}</div>', unsafe_allow_html=True)
 
 
 # ------------------------------------------------------ presentation mode --
@@ -854,11 +932,10 @@ with tab_vs:
 
 # ---------------------------------------------------------------- Results --
 with tab_results:
-    st.markdown("#### System status")
-    b = sim.status_banner()
+    st.markdown('<div class="sec">System status</div>', unsafe_allow_html=True)
     cols = st.columns(4)
-    for i, (k, v) in enumerate(b.items()):
-        cols[i % 4].metric(k, v)
+    for i, c in enumerate(sim.status_banner()):
+        cols[i % 4].metric(c["label"], c["value"], help=c["note"] or None)
 
     st.divider()
     r1, r2 = st.columns(2, gap="large")
