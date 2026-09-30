@@ -1,0 +1,31 @@
+# Streamlit configuration for the TUAV IoV simulator.
+#
+# WHY LIGHT THEME IS PINNED
+# -------------------------
+# This app is built to be shown on a classroom projector, usually with the room
+# lights on. Dark themes wash out badly in that setting - mid-greys collapse
+# into the background and thin chart lines disappear.
+#
+# Pinning the theme also means the colours you rehearse at home are exactly the
+# colours on the wall, rather than whatever your laptop's system theme happens
+# to be that morning.
+#
+# TO USE DARK MODE INSTEAD
+# ------------------------
+# Change base to "dark", or delete this file to follow your system setting.
+# The charts render correctly either way - their canvases are transparent and
+# inherit whichever theme is active.
+
+[theme]
+base = "light"
+primaryColor = "#A8580A"          # amber, matching the reports and the decks
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F2F4F7"
+textColor = "#131820"
+
+[browser]
+gatherUsageStats = false
+
+[server]
+# Stops the app reloading mid-demo if a file is touched by accident.
+fileWatcherType = "none"

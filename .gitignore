@@ -1,0 +1,75 @@
+# ---------------------------------------------------------------------------
+# Copyrighted material - NEVER commit this
+# ---------------------------------------------------------------------------
+# The base paper is IEEE copyright. Redistributing the PDF in a public
+# repository would be infringement. Readers should obtain it from IEEE Xplore:
+#   https://doi.org/10.1109/TITS.2023.3252082
+Secure_and_Efficient_Authenticated_Key_Management_Scheme_for_UAV-Assisted_Infrastructure-Less_IoVs.pdf
+*.pdf.original
+
+# ---------------------------------------------------------------------------
+# Personal coursework material
+# ---------------------------------------------------------------------------
+# Presentation decks and speaker notes are private preparation, not part of the
+# software. Remove these lines if you decide to publish them.
+Phase1_*
+Phase2_*
+Speakers_Handbook_*
+Simulator_Demo_Handbook.*
+
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# ---------------------------------------------------------------------------
+# Testing and tooling
+# ---------------------------------------------------------------------------
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.tox/
+
+# ---------------------------------------------------------------------------
+# Environments
+# ---------------------------------------------------------------------------
+.venv/
+venv/
+env/
+ENV/
+
+# ---------------------------------------------------------------------------
+# Editors and OS
+# ---------------------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ---------------------------------------------------------------------------
+# Streamlit runtime (the committed config.toml is intentional)
+# ---------------------------------------------------------------------------
+.streamlit/secrets.toml
+
+# ---------------------------------------------------------------------------
+# LaTeX build artefacts
+# ---------------------------------------------------------------------------
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz

@@ -1,0 +1,17 @@
+# Core simulator
+streamlit>=1.30
+plotly>=5.18
+pandas>=2.0
+numpy>=1.24
+sympy>=1.12
+
+# Faithful crypto backend: real BN128 bilinear pairings, pure Python, no compiler.
+# Omit this and the simulator still runs — the faithful backend is simply
+# disabled and the sidebar says so.
+py_ecc>=6.0
+
+# Secure data exchange demo (AES-GCM)
+cryptography>=41.0
+
+# Tests
+pytest>=7.4
