@@ -18,6 +18,12 @@ section matters more than the feature list.
 > The paper itself is IEEE copyright and is **not** included in this repository.
 > Obtain it from IEEE Xplore via the DOI above.
 
+![System topology](docs/images/topology.png)
+
+*The live topology, laid out like Figure 1 of the paper. Drone colours follow
+authentication status, revoked members are struck through, and the satellite
+link turns red when the authority is unreachable.*
+
 ---
 
 ## The problem
@@ -120,6 +126,8 @@ Step GA1 crosses a satellite channel for every verification, and Step GA3 cannot
 be evaluated until Step GA2 returns. Set **availability → 0** in the sidebar and
 authentication does not degrade — it **stops**.
 
+![Availability cliff](docs/images/availability_cliff.png)
+
 | TA link availability | Authentication success rate |
 |---|---|
 | 100% | 100% |
@@ -146,6 +154,8 @@ Three are blocked. **One is not**, and that is the finding.
 Replay is defended **twice**. Switch off the timestamp check and a replayed
 credential still fails, because the TUAV draws a fresh `r_tu` each session —
 that is the cryptographic half of Theorem 3, and it needs no check at all.
+
+![Goodput under batch poisoning](docs/images/goodput.png)
 
 Measured goodput under batch poisoning, n = 20:
 
