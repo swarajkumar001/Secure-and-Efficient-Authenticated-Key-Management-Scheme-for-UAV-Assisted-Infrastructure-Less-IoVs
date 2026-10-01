@@ -20,9 +20,10 @@ section matters more than the feature list.
 
 ![System topology](docs/images/topology.png)
 
-*The live topology, laid out like Figure 1 of the paper. Drone colours follow
-authentication status, revoked members are struck through, and the satellite
-link turns red when the authority is unreachable.*
+*The system architecture, in academic flowchart style: the six tiers of
+Figure 1 as geometric nodes. The figure is live, not a drawing — node borders
+and fills follow authentication status, revoked members are struck through with
+their links dotted, and the authority arrow turns red when the link is down.*
 
 ---
 
@@ -40,17 +41,21 @@ response vehicle, hovers indefinitely and takes over the roadside unit's role.
 
 ## Quick start
 
+Run both commands from the repository root, **not** from inside
+`uav_iov_simulator`:
+
 ```bash
-pip install -r uav_iov_simulator/requirements.txt
-streamlit run uav_iov_simulator/app.py
+python -m pip install -r uav_iov_simulator/requirements.txt
+python -m streamlit run uav_iov_simulator/app.py
 ```
 
-If `streamlit` is not on your PATH, use `python -m streamlit run ...` instead.
+The app opens at `http://localhost:8501`. Use `python -m streamlit` rather than
+bare `streamlit`, which is frequently not on PATH.
 
 Run the tests — they are the gate everything else depends on:
 
 ```bash
-python -m pytest uav_iov_simulator/tests -q     # 71 passed
+python -m pytest uav_iov_simulator/tests -q     # 74 passed
 ```
 
 No GPU, no compiler, no external service. `py_ecc` is pure Python.
@@ -61,7 +66,7 @@ No GPU, no compiler, no external service. `py_ecc` is pure Python.
 
 | Tab | Contents |
 |---|---|
-| **Network** | Live four-tier topology, UAV table, event log |
+| **Network** | Architecture figure, plus a 51-frame animated walkthrough of one full run |
 | **Protocol run** | Steps US1–US3 and GA1–GA4, with the TUAV / TA cost split |
 | **Group key** | CRT distribution, key holders, the declared correction |
 | **Attacks** | Replay (×2), impersonation, revoked access, batch poisoning |
@@ -71,9 +76,39 @@ No GPU, no compiler, no external service. `py_ecc` is pure Python.
 | **Performance** | E1/E7/E8 sweeps, Table III, overhead, transcription check |
 | **Paper vs us** | Fidelity table; what is and is not comparable |
 | **Results** | Full status, adversary outcomes, event log |
+| **About the research** | The paper, the gap, and what this project adds |
 
 Every simulator action is labelled with the paper's own step label, so you can
 follow along in the PDF.
+
+---
+
+## Presenting it
+
+The sidebar toggle **Presentation Mode** strips the dashboard to one idea per
+screen — nine steps, a large headline each, driven by a single **Next** button:
+
+1. The roadside is gone
+2. A drone on a leash
+3. Secrets issued offline
+4. A new name every session
+5. One equation, every drone
+6. **The pairings did not disappear**
+7. One broadcast for everyone
+8. The stale key opens nothing
+9. **What the paper does not address**
+
+For a live demo instead, the sidebar actions unlock in protocol order —
+**Initialize → Register UAVs → Start Authentication → Distribute Group Key** —
+so the buttons themselves enforce the sequence. On the Network tab, switch the
+view from *Live state* to *Animated walkthrough* to watch the messages move.
+
+Two settings carry the findings: drag **Availability** to zero and
+authentication stops rather than slows; set **Forged credentials** above zero
+and the whole batch fails. Both are in the sidebar.
+
+**Reset → Initialize** returns to a known state in two clicks if a live demo
+goes sideways.
 
 ---
 
@@ -259,8 +294,14 @@ paper_model/
   cost.py               Table III formulas — a calculator, not a simulation
   overhead.py           Table V byte accounting
 
-visualization/          topology, performance charts, security board, demo mode
-tests/                  71 tests
+visualization/
+  nodes.py              geometric shape vocabulary for the architecture figure
+  network_graph.py      the live architecture figure
+  protocol_animation.py 51-frame walkthrough of one authentication run
+  performance.py        the E1-E8 charts
+  security.py           the F1-F11 board
+  presentation.py       Presentation Mode - nine steps, one idea per screen
+tests/                  74 tests
 ```
 
 **The one rule:** the protocol layer imports `crypto.interface` and never a
@@ -271,7 +312,7 @@ what stops a fast approximation from leaking into a "faithful" measurement.
 
 ## Status
 
-Complete. 71 passing tests on both backends, 33 modules, ~6,200 lines.
+Complete. 74 passing tests on both backends, 37 modules, ~7,300 lines.
 
 ## Licence
 
