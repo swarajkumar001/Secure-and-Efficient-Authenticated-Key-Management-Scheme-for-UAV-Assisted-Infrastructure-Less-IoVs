@@ -73,3 +73,7 @@ desktop.ini
 *.fls
 *.fdb_latexmk
 *.synctex.gz
+
+# Office lock files. These start with ~$, so they slip past the Phase1_* rule
+# above and one of them reached the public repo.
+~$*
