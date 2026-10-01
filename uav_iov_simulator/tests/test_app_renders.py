@@ -219,3 +219,39 @@ def test_reset_path_renders():
     [b for b in at.button if b.label == "Reset"][0].click().run()
     assert not at.exception, [str(e) for e in at.exception]
     assert at.session_state["sys"].initialized is False
+
+
+def test_animated_walkthrough_renders():
+    """The animation has its own render path on the Network tab."""
+    at = _run()
+    _btn(at, "Initialize").click().run()
+
+    radios = [r for r in at.radio if "Animated walkthrough" in (r.options or [])]
+    assert radios, "the view selector is missing"
+    radios[0].set_value("Animated walkthrough").run()
+    assert not at.exception, [str(e) for e in at.exception]
+
+
+def test_animation_has_frames_and_a_caption_per_step():
+    """Every frame must carry its own caption, or the playback is mute."""
+    import random
+    from uav_iov_simulator import state as S
+    from uav_iov_simulator.visualization import protocol_animation as PA
+
+    sim = S.SystemState()
+    sim.rng = random.Random(1)
+    sim = S.act_initialize(sim, backend_name="abstract", rtt_ms=100,
+                           availability=1.0)
+    sim = S.act_register(sim, 6)
+
+    fig = PA.build(sim)
+    assert fig is not None
+    assert len(fig.frames) > 30, "too few frames for smooth playback"
+    for fr in fig.frames:
+        assert fr.layout.annotations, f"frame {fr.name} has no caption"
+
+
+def test_animation_returns_none_before_initialization():
+    from uav_iov_simulator import state as S
+    from uav_iov_simulator.visualization import protocol_animation as PA
+    assert PA.build(S.SystemState()) is None

@@ -27,7 +27,7 @@ from uav_iov_simulator.paper_model import overhead as paper_overhead
 from uav_iov_simulator.protocol.entities import Status
 from uav_iov_simulator.simulation import datalink, experiments
 from uav_iov_simulator.visualization import (
-    network_graph, performance, presentation, security,
+    network_graph, performance, presentation, protocol_animation, security,
 )
 
 
@@ -371,9 +371,25 @@ if present:
 with tab_net:
     left, right = st.columns([3, 2], gap="large")
     with left:
-        st.plotly_chart(network_graph.render(sim), width="stretch",
-                        config={"displayModeBar": False})
-        st.markdown(network_graph.legend_html(), unsafe_allow_html=True)
+        view = st.radio(
+            "view", ["Live state", "Animated walkthrough"],
+            horizontal=True, label_visibility="collapsed",
+            help="Live state shows the system as it is right now. The "
+                 "walkthrough plays one full authentication run so you can "
+                 "watch the messages move.")
+
+        if view == "Animated walkthrough":
+            anim = protocol_animation.build(sim)
+            if anim is None:
+                st.info("Press **Initialize** in the sidebar first.")
+            else:
+                st.plotly_chart(anim, width="stretch",
+                                config={"displayModeBar": False})
+                st.caption(protocol_animation.CAPTION)
+        else:
+            st.plotly_chart(network_graph.render(sim), width="stretch",
+                            config={"displayModeBar": False})
+            st.markdown(network_graph.legend_html(), unsafe_allow_html=True)
 
     with right:
         st.markdown("#### Registered UAVs")
