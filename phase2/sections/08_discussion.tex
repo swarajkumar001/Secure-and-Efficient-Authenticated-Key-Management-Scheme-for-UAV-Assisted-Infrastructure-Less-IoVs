@@ -1,0 +1,101 @@
+% =====================================================================
+\section{Discussion and Limitations}\label{sec:discussion}
+% =====================================================================
+A proposal is credible only if it states what it does not solve. Our main limitations are:
+
+\begin{enumerate}[label=\textbf{L\arabic*.},leftmargin=*]
+  \item \textbf{Captured TUAV.} With the TA offline, the TUAV is the most trusted entity in the field. A captured TUAV learns $\GK_a$, $\VK_a$, the pairwise keys
+        of its cell and $K_{ab}$, and could issue tickets to neighbours until it is evicted. It still cannot forge member signatures or learn any $x_\Ent$.
+        \emph{Future work:} threshold admission across two or more TUAVs.
+  \item \textbf{Linkability inside an epoch} (Theorem~\ref{thm:priv}). This is the price of effective local eviction. The epoch length is a tunable parameter.
+  \item \textbf{Pseudonym storage.} Each epoch credential ($\PID$, $Y$, $d$, $x$, $X$) takes about 184 bytes. A 72-hour mission with 15-minute epochs needs
+        288 of them, about 53\,KB, which is small, but the pool must be loaded before deployment.
+  \item \textbf{Deferred global revocation.} Permanent revocation (TR2) needs the TA to be reachable at some point. Local eviction covers the gap but lasts only until the epoch ends.
+  \item \textbf{Phantom entities.} A malicious TA can always \emph{enrol} a fake entity. This is inherent to any scheme with a registration authority. It cannot impersonate a
+        \emph{registered} entity (Theorem~\ref{thm:escrow}), and the signed RG1 records make phantom enrolment auditable.
+  \item \textbf{Larger requests.} 248\,B against 104\,B reported (Table~\ref{tab:comm}).
+  \item \textbf{Analytical evaluation and proof sketches.} The costs are computed rather than measured, and the proofs are sketches; both are addressed in the final phase.
+  \item \textbf{Security level.} We used the base paper's 80-bit constants for comparability. A deployment should use a 128-bit curve (for example P-256 or Curve25519). This changes both
+        schemes' absolute timings but not the structural result: one has pairings and a satellite round trip, the other has neither.
+\end{enumerate}
+
+\begin{keybox}
+What we claim, precisely: \emph{the published scheme does not achieve infrastructure independence, escrow-freeness, non-repudiation, forward secrecy or secure revocation;
+these properties can all be recovered together, using established primitives, at a lower total computation cost and with linear communication; and the same trust
+root then extends to vehicles and multi-TUAV handover.} We do not claim new cryptographic primitives.
+\end{keybox}
+
+% =====================================================================
+\section{Implementation and Evaluation Plan (Final Phase)}\label{sec:plan}
+% =====================================================================
+\subsection{Implementation}
+\begin{itemize}
+  \item \textbf{Prototype} in Python: \texttt{cryptography} (P-256 ECDH and scalar arithmetic, HKDF, AES-GCM, HMAC). One shared crypto module, with one protocol module per tier (C1, C2, C3).
+  \item \textbf{Baseline}: the base scheme implemented with a pairing library, including the TA's GA2 work.
+  \item \textbf{Network model}: a discrete-event simulation with a TA link of configurable availability $A$ and RTT, a UAV mobility model that drives handovers, and an adversary
+        that injects a controlled fraction of invalid requests.
+  \item \textbf{Formal verification}: ProVerif~\cite{proverif} models of C1 (mutual authentication, secrecy of $K_i$ and $\GK_a$), C2 and C3 (ticket secrecy, injective agreement), and of
+        the base scheme's key step, to confirm Finding~\ref{f:crt} mechanically.
+\end{itemize}
+
+\subsection{Experiments}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+ID & Experiment & Expected outcome (hypothesis)\\
+\midrule
+E1 & Authentication success vs TA-link availability & Base equals $A$; ours 100\% (near-certain by construction)\\
+E2 & End-to-end latency vs $n$ and RTT, measured & Ours lower for every RTT $\ge 0$ (the zero-RTT run is our honesty check)\\
+E3 & Goodput and time vs fraction of invalid requests & Base goodput 0 with one bad request; ours $1-f$ with cost $\le T_{BV}+nT_{SV}$\\
+E4 & Key-delivery and rekey bytes vs $n$ & Linear for ours; cubic for base (already computed)\\
+E5 & Vehicle tier: verification time for 50--500 vehicles; flood filtering at relays & Batch gain grows with $m$; outsider floods are dropped at the first hop\\
+E6 & Handover latency vs full re-admission under mobility & Lower latency, no service gap\\
+E7 & Attack demos: revocation break, TA forgery, cancellation & Succeed on base, fail on ours\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Division of work}
+\begin{center}\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+Member & Primary & Shared\\
+\midrule
+Swaraj Kumar & C1 (UAV tier), crypto module, attacks on the base scheme & paper writing\\
+Hritik Ranjan & C2 (vehicle tier), batch verification and fallback, E3/E5 & ProVerif models\\
+Harsh Raj & C3 (handover), mobility simulation, E6 & evaluation figures\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% =====================================================================
+\section{Conclusion and Future Work}\label{sec:conclusion}
+% =====================================================================
+The base paper identifies a real and important problem: secure vehicular networking after a disaster has destroyed the roadside infrastructure. Its TUAV
+architecture is a good answer. However, its protocol puts the cloud TA inside every operation. As a result the scheme stops when the satellite link fails, the TA
+can impersonate every UAV, a revoked UAV keeps receiving group keys, and the reported costs leave out the most expensive work.
+
+\emph{Cutting the Cord} keeps the architecture and moves the trust root offline. Escrow-free certificateless credentials let a TUAV verify UAVs and vehicles
+locally in a sound batch with bounded fallback; per-member ECDH keys make group-key delivery linear in size, forward-secure and revocation-safe; and ticket-based handover
+connects neighbouring TUAVs. With the base paper's own constants, our TUAV authenticates and keys 120 UAVs in about 228\,ms. Counted honestly, the base scheme needs about 3720\,ms
+plus a satellite round trip, and its key traffic drops from about 16.7\,MiB to 8\,KiB.
+
+\textbf{Future work}: threshold trust across TUAVs against capture; post-quantum credentials; integration with the radio and mobility layer; and a field trial with a tethered drone.
+
+% =====================================================================
+\begin{thebibliography}{99}\small
+\bibitem{base} H.~Tan, W.~Zheng and P.~Vijayakumar, ``Secure and efficient authenticated key management scheme for UAV-assisted infrastructure-less IoVs,''
+  \emph{IEEE Trans. Intell. Transp. Syst.}, vol.~24, no.~6, pp.~6389--6400, Jun. 2023, doi: 10.1109/TITS.2023.3252082.
+\bibitem{alriyami} S.~S.~Al-Riyami and K.~G.~Paterson, ``Certificateless public key cryptography,'' in \emph{Proc. ASIACRYPT}, LNCS 2894, 2003, pp.~452--473.
+\bibitem{schnorr} C.~P.~Schnorr, ``Efficient signature generation by smart cards,'' \emph{J. Cryptology}, vol.~4, no.~3, pp.~161--174, 1991.
+\bibitem{forking} D.~Pointcheval and J.~Stern, ``Security arguments for digital signatures and blind signatures,'' \emph{J. Cryptology}, vol.~13, no.~3, pp.~361--396, 2000.
+\bibitem{bgr} M.~Bellare, J.~A.~Garay and T.~Rabin, ``Fast batch verification for modular exponentiation and digital signatures,'' in \emph{Proc. EUROCRYPT}, LNCS 1403, 1998, pp.~236--250.
+\bibitem{zaverucha} G.~M.~Zaverucha and D.~R.~Stinson, ``Group testing and batch verification,'' in \emph{Proc. ICITS}, LNCS 5973, 2009, pp.~140--157.
+\bibitem{eclas} Y.~Han, W.~Song, Z.~Zhou, H.~Wang and B.~Yuan, ``ECLAS: An efficient pairing-free certificateless aggregate signature for secure VANET communication,''
+  \emph{IEEE Syst. J.}, vol.~16, no.~1, pp.~1637--1648, Mar. 2022.
+\bibitem{lkh} C.~K.~Wong, M.~Gouda and S.~S.~Lam, ``Secure group communications using key graphs,'' \emph{IEEE/ACM Trans. Netw.}, vol.~8, no.~1, pp.~16--30, 2000.
+\bibitem{hkdf} H.~Krawczyk and P.~Eronen, ``HMAC-based extract-and-expand key derivation function (HKDF),'' RFC 5869, 2010.
+\bibitem{gcm} M.~Dworkin, ``Recommendation for block cipher modes of operation: Galois/Counter Mode (GCM) and GMAC,'' NIST SP 800-38D, 2007.
+\bibitem{dolevyao} D.~Dolev and A.~C.~Yao, ``On the security of public key protocols,'' \emph{IEEE Trans. Inf. Theory}, vol.~29, no.~2, pp.~198--208, 1983.
+\bibitem{proverif} B.~Blanchet, ``An efficient cryptographic protocol verifier based on Prolog rules,'' in \emph{Proc. IEEE CSFW}, 2001, pp.~82--96.
+\end{thebibliography}

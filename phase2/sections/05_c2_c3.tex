@@ -1,0 +1,147 @@
+% =====================================================================
+\section{C2: The Vehicle Tier}\label{sec:c2}
+% =====================================================================
+The base paper secures only the UAV--TUAV link and states that vehicle authentication is ``well studied'' and assumed to be handled elsewhere. Yet
+the vehicles are why the network exists. Existing vehicle schemes assume an RSU or an online TA, neither of which is available here. C2 brings
+vehicles under the \emph{same} offline trust root.
+
+\begin{keybox}
+Vehicles carry the same certificateless credential as UAVs. Authenticated UAVs act as \emph{relays and filters}: they carry vehicles' requests to the
+TUAV, which batch-verifies them and returns a regional key for V2V traffic. The UAVs cannot read or forge anything.
+\end{keybox}
+
+\begin{figure}[H]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[font=\sffamily\small]
+  \node[ent=hoc]  (t) at (0,0)   {TUAV $\Ta$};
+  \node[ent=uavc] (u) at (6,0)   {UAV $\U_i$ (relay)};
+  \node[ent=vehc] (v) at (12,0)  {vehicle $\V_j$};
+  \foreach \n in {t,u,v}{ \draw[life] (\n.south) -- ++(0,-8.7); }
+  \draw[msg=hoc] (0,-1.0) -- node[lbl,above]{VA1 $\mathit{Beacon}_a$} (6,-1.0);
+  \draw[msg=uavc] (6,-1.0) -- node[lbl,above]{re-broadcast (signed, unchanged)} (12,-1.0);
+  \node[act=vehc,anchor=north] at (12,-1.3) {verify beacon; pick $e_j,r_j$\\ sign $m_j=(\texttt{"veh"}\cat\ID_a\cat E_a\cat E_j)$};
+  \draw[msg=vehc] (12,-2.6) -- node[lbl,above]{VA2 $\mathit{Req}_j=\langle\PID_j,\ep,X_j,Y_j,E_j,\ts_j,R_j,v_j\rangle$} (6,-2.6);
+  \node[act=uavc,anchor=north] at (6,-2.9) {VA3: freshness, 1 req/$\PID$/window,\\ bundle $\mathfrak{B}=\{\mathit{Req}_j\}$};
+  \draw[msg=uavc] (6,-4.1) -- node[lbl,above]{$\langle\Hd(\PID_i),\ts,\mathfrak{B},\tau\rangle$, $\tau=\MAC(K_i,\mathfrak{B}\cat\ts)$} (0,-4.1);
+  \node[act=hoc,anchor=north] at (0,-4.4) {VA4: check $\tau$ (relay is a member);\\ batch-verify $\mathfrak{B}$ (UA3 rule);\\ $K_j=\KDF(e_aE_j\cat\PID_j\cat\ID_a\cat\ts_j)$\\ $C_j=\Enc(K_j,\VK_a\cat\nu_V;\,\Hd(\PID_j)\cat\nu_V\cat\ts_4)$};
+  \draw[msg=hoc] (0,-6.4) -- node[lbl,above]{$\{\Hd(\PID_j),C_j\}$} (6,-6.4);
+  \draw[msg=uavc] (6,-6.4) -- node[lbl,above]{forward (cannot open $C_j$)} (12,-6.4);
+  \node[act=vehc,anchor=north] at (12,-6.7) {VA5: $K_j=\KDF(e_jE_a\cat\dots)$\\ $\VK_a\cat\nu_V=\Dec(K_j,C_j)$};
+\end{tikzpicture}}
+\caption{C2: vehicle authentication relayed by an authenticated UAV.}
+\label{fig:c2}
+\end{figure}
+
+\subsection{Steps}
+\begin{stepbox}{vehc}{VA1--VA5 \;Vehicle admission}
+\steplabel{vehc}{VA1.} UAVs re-broadcast the TUAV's signed beacon so that vehicles out of the TUAV's range receive it. A relay cannot alter it.\\[2pt]
+\steplabel{vehc}{VA2.} $\V_j$ verifies the beacon, picks $e_j,r_j$, and signs $m_j=(\texttt{"veh"}\cat\ID_a\cat E_a\cat E_j)$ exactly as in UA2, giving
+$\mathit{Req}_j$. It sends the request to a UAV in range, or directly to $\Ta$ if it is in range.\\[2pt]
+\steplabel{vehc}{VA3.} The relay $\U_i$ checks freshness, allows at most one request per $\PID_j$ per window, collects a bundle $\mathfrak{B}$ and sends
+$\langle\Hd(\PID_i),\ts,\mathfrak{B},\tau=\MAC(K_i,\mathfrak{B}\cat\ts)\rangle$ to $\Ta$.\\[2pt]
+\steplabel{vehc}{VA4.} $\Ta$ discards the bundle unless $\tau$ verifies under the key of a \emph{current} member. It then applies the UA3 rule to
+$\mathfrak{B}$, derives $K_j$ for each valid vehicle, and returns $C_j=\Enc(K_j,\VK_a\cat\nu_V;\,\Hd(\PID_j)\cat\nu_V\cat\ts_4)$ through $\U_i$.\\[2pt]
+\steplabel{vehc}{VA5.} $\V_j$ derives $K_j$, decrypts $\VK_a$ and erases $e_j$. A successful decryption authenticates $\Ta$.
+\end{stepbox}
+
+\subsection{V2V communication under the regional key}
+Vehicles send two classes of message:
+\begin{itemize}
+  \item \textbf{Routine beacons} (position, speed; about 10 per second):\ $\langle m,\PID_j,\ts,\MAC(\VK_a,m\cat\PID_j\cat\ts)\rangle$. Cost: one HMAC.
+  \item \textbf{Safety-critical events} (accident, road blocked): $\langle m,\PID_j,\ep,X_j,Y_j,\ts,R,v\rangle$ with a certificateless signature as in UA2.
+        Receivers verify bursts of events with the batch test~\eqref{eq:bv}.
+\end{itemize}
+
+\begin{whybox}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Same credential, same root.} One registration serves both UAVs and vehicles, so a vehicle can be verified anywhere using only $\Ppub$.
+  \item \textbf{UAVs relay, the TUAV verifies.} Battery-limited UAVs do no public-key verification for vehicles. The TUAV, which has a cable power supply, does the batch work, where batching pays off most (hundreds of vehicles).
+  \item \textbf{Relay MAC as a flood filter.} Only bundles from current members reach the verifier, and each relay rate-limits per pseudonym. An outsider flooding forged requests is
+        stopped at the first hop, which addresses the denial-of-service gap of Finding~\ref{f:proof}(iv) at the vehicle scale.
+  \item \textbf{Separate keys $\VK_a$ and $\GK_a$.} A captured vehicle must not obtain the UAV control-channel key (privilege separation).
+  \item \textbf{Two message classes.} A MAC under a shared key is fast but only proves ``some member sent this''. Safety-critical events need
+        non-repudiation (accountability after an accident), so they are signed.
+\end{itemize}
+\end{whybox}
+\begin{limitbox}
+Any holder of $\VK_a$ can forge a \emph{routine} beacon that appears to come from another pseudonym. We accept this for routine traffic and require signatures
+for events that matter. A relay UAV can drop bundles (denial of service) but cannot forge, read or alter them undetected.
+\end{limitbox}
+
+% =====================================================================
+\section{C3: TUAV-to-TUAV Handover}\label{sec:c3}
+% =====================================================================
+One TUAV covers a limited area, so a real disaster zone needs several, and UAVs and vehicles move between cells. Re-running the full C1/C2
+admission at every cell border costs signature generation and verification on both sides and interrupts service. The base paper considers a single TUAV only.
+
+\begin{keybox}
+Neighbouring TUAVs share a link key $K_{ab}$. The old TUAV gives a moving member an encrypted \emph{ticket}. The new TUAV opens the ticket,
+checks a MAC, runs one ECDH for forward secrecy, and admits the member \emph{without any signature verification and without the TA}.
+\end{keybox}
+
+\begin{figure}[H]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[font=\sffamily\small]
+  \node[ent=hoc] (a) at (0,0)  {old TUAV $\Ta$};
+  \node[ent=uavc] (m) at (6,0) {member $\M$};
+  \node[ent=hoc] (b) at (12,0) {new TUAV $\Tb$};
+  \foreach \n in {a,m,b}{ \draw[life] (\n.south) -- ++(0,-9.9); }
+  \draw[{Stealth}-{Stealth},hoc,very thick] (0,-0.95) -- node[lbl,above]{HO0 signed ECDH $\Rightarrow K_{ab}$ (per epoch) + eviction lists $\mathcal{L}$} (12,-0.95);
+  \node[act=hoc,anchor=north] at (0,-1.3) {HO1: $\hk_\M=\KDF(K_\M\cat\texttt{"HO"}\cat\ID_b\cat\ts_h)$\\ $\Tk_\M=\Enc(K_{ab},\ \PID_\M\cat\ep\cat\pk_\M\cat\mathit{role}$\\ \hspace*{4.5em}$\cat\,\hk_\M\cat N_\M\cat\mathit{exp};\ \ID_a\cat\ID_b)$};
+  \draw[msg=hoc] (0,-3.1) -- node[lbl,above]{$\Enc(K_\M,\ \ID_b\cat\ts_h\cat\Tk_\M)$} (6,-3.1);
+  \node[act=uavc,anchor=north] at (6,-3.4) {derive $\hk_\M$ itself;\\ on entering cell $b$: pick $e'_\M$};
+  \draw[msg=uavc] (6,-4.6) -- node[lbl,above]{HO2 $\langle\ID_a,\Tk_\M,E'_\M,\ts,\tau_\M\rangle$} (12,-4.6);
+  \node[font=\scriptsize\sffamily,anchor=north] at (9,-4.75) {$\tau_\M=\MAC(\hk_\M,\Tk_\M\cat E'_\M\cat\ts)$};
+  \node[act=hoc,anchor=north] at (12,-5.4) {HO3: open $\Tk_\M$ with $K_{ab}$;\\ check $\mathit{exp}$, $N_\M$ unused, $\PID_\M\notin\mathcal{L}$;\\ verify $\tau_\M$ with $\hk_\M$; pick $e'_b$\\ $K'_\M=\KDF(e'_bE'_\M\cat\hk_\M\cat\PID_\M\cat\ID_b)$};
+  \draw[msg=hoc] (12,-7.7) -- node[lbl,above]{$\langle E'_b,\ts',\ \Enc(K'_\M,\GK_b\cat\nu_b;\ E'_b\cat\ts')\rangle$} (6,-7.7);
+  \node[act=uavc,anchor=north] at (6,-8.0) {HO4: $K'_\M=\KDF(e'_\M E'_b\cat\hk_\M\cat\dots)$;\\ decrypt $\Rightarrow$ $\Tb$ authentic; erase $e'_\M$};
+\end{tikzpicture}}
+\caption{C3 handover. Only symmetric operations and one ECDH are needed at the new TUAV.}
+\label{fig:c3}
+\end{figure}
+
+\subsection{Steps}
+\begin{stepbox}{hoc}{HO0--HO4 \;Inter-TUAV link and ticket-based handover}
+\steplabel{hoc}{HO0.} When two TUAVs come into range, and once per epoch after that, they exchange signed ephemeral values $(E_{ab},E_{ba})$ using their
+credentials and derive $K_{ab}=\KDF(e_{ab}E_{ba}\cat\ID_a\cat\ID_b\cat\ts)$. Over $K_{ab}$ they exchange their eviction lists $\mathcal{L}$.\\[2pt]
+\steplabel{hoc}{HO1.} When member $\M$ (pairwise key $K_\M$ with $\Ta$) approaches cell $b$, $\Ta$ derives $\hk_\M=\KDF(K_\M\cat\texttt{"HO"}\cat\ID_b\cat\ts_h)$,
+draws a nonce $N_\M$ and an expiry $\mathit{exp}$, builds the ticket
+$\Tk_\M=\Enc(K_{ab},\ \PID_\M\cat\ep\cat\pk_\M\cat\mathit{role}\cat\hk_\M\cat N_\M\cat\mathit{exp};\ \ID_a\cat\ID_b)$, and sends it to $\M$ under $K_\M$.
+$\M$ derives the same $\hk_\M$ from $K_\M$.\\[2pt]
+\steplabel{hoc}{HO2.} In cell $b$, $\M$ picks $e'_\M$ and sends $\langle\ID_a,\Tk_\M,E'_\M,\ts,\tau_\M=\MAC(\hk_\M,\Tk_\M\cat E'_\M\cat\ts)\rangle$ to $\Tb$.\\[2pt]
+\steplabel{hoc}{HO3.} $\Tb$ decrypts $\Tk_\M$ with $K_{ab}$ and rejects the request if $\mathit{exp}$ has passed, if $N_\M$ was already used (it caches nonces until
+$\mathit{exp}$), if $\Hd(\PID_\M)\in\mathcal{L}$, or if $\tau_\M$ does not verify under $\hk_\M$. Otherwise it picks $e'_b$ and sends
+$\langle E'_b,\ts',\Enc(K'_\M,\GK_b\cat\nu_b;\,E'_b\cat\ts')\rangle$ with $K'_\M=\KDF(e'_bE'_\M\cat\hk_\M\cat\PID_\M\cat\ID_b)$. For a vehicle
+($\mathit{role}=\texttt{veh}$), it sends $\VK_b$ instead of $\GK_b$.\\[2pt]
+\steplabel{hoc}{HO4.} $\M$ derives $K'_\M$ and decrypts. Success means $\Tb$ knows $\hk_\M$, which only a holder of $K_{ab}$ could obtain, so $\Tb$ is authentic.
+$\M$ and $\Tb$ erase $e'_\M,e'_b$. $\Ta$ removes $\M$ at its next rekey.
+\end{stepbox}
+
+\begin{whybox}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Why a ticket.} The old TUAV already verified $\M$'s signature. The ticket passes that verified fact on, under $K_{ab}$, so the new TUAV need not repeat the work.
+  \item \textbf{Why $\hk_\M$ and not $K_\M$.} $\Tb$ never learns the pairwise key $\M$ used in cell $a$. If $\Tb$ is later compromised, $\M$'s traffic in cell $a$ stays safe.
+  \item \textbf{Why a fresh ECDH.} The new key $K'_\M$ mixes a fresh Diffie--Hellman value with $\hk_\M$, so it has forward secrecy, and an attacker who later
+        learns $K_{ab}$ still cannot compute it.
+  \item \textbf{Why nonce, expiry and AD.} A ticket can be used once, only before $\mathit{exp}$, and only between the two named TUAVs ($\ID_a\cat\ID_b$ as associated data).
+  \item \textbf{Why share $\mathcal{L}$.} An entity evicted in cell $a$ cannot escape by moving to cell $b$.
+\end{itemize}
+\end{whybox}
+
+% =====================================================================
+\section{The TA's Offline Role: Tracing and Global Revocation}\label{sec:tr}
+% =====================================================================
+\begin{stepbox}{deep}{TR1--TR2 \;(TA, whenever reachable -- never on the critical path)}
+\steplabel{deep}{TR1 (tracing).} Given a pseudonym from a disputed message, the tracing office computes
+$\RID=\PID^2\oplus\Hz(t\cdot\PID^1\cat\ep)$, which is correct because $t\,\PID^1=t\rho P=\rho\Tpub$. The signed message and the RG1 record bind the real
+entity to the act (non-repudiation).\\[2pt]
+\steplabel{deep}{TR2 (global revocation).} To ban an entity permanently, $\TA$ publishes a signed list of $\Hd(\PID^{(\ep)})$ for all of its \emph{remaining}
+epochs. TUAVs merge the list into $\mathcal{L}$ and propagate it over $K_{ab}$. Earlier pseudonyms are not published, so the entity's past stays unlinkable.
+\end{stepbox}
+\begin{whybox}
+Revocation becomes \emph{two-speed}. A TUAV evicts a misbehaving pseudonym \emph{immediately and locally} (UA3, RK1, shared via HO0), which covers the
+rest of the epoch. Permanent revocation waits until the TA is reachable, by any channel at any time, and it never blocks authentication. This is the
+practical meaning of ``infrastructure-less'': the infrastructure \emph{helps when present} but is \emph{not required}.
+\end{whybox}

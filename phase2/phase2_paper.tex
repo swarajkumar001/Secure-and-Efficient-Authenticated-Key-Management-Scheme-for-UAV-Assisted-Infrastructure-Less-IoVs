@@ -1,0 +1,221 @@
+% =====================================================================
+%  Phase 2 paper  --  Team 6
+%  Build:  cd phase2 && pdflatex phase2_paper && pdflatex phase2_paper
+%  Every number in this file is produced by scripts/compute_results.py
+%  (costs, bytes) or scripts/crt_revocation_attack.py (attack check).
+% =====================================================================
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[a4paper,margin=2.2cm,headheight=14pt]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{booktabs,array,tabularx,multirow}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{pifont}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,shapes.misc,fit,backgrounds,calc,shadows,decorations.pathreplacing}
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+\pgfplotsset{compat=1.17}
+\usepackage[colorlinks=true,linkcolor=deep,citecolor=uavc,urlcolor=uavc]{hyperref}
+
+% ---------------- palette ----------------
+\definecolor{deep}{HTML}{0B3954}     % night sky  -- titles, TA
+\definecolor{uavc}{HTML}{087E8B}     % teal       -- UAV tier (C1)
+\definecolor{vehc}{HTML}{6A4C93}     % violet     -- vehicle tier (C2)
+\definecolor{hoc}{HTML}{E07A1F}      % amber      -- handover tier (C3)
+\definecolor{bad}{HTML}{C81D25}      % red        -- flaws, attacks
+\definecolor{good}{HTML}{2A9D3F}     % green      -- fixed / holds
+\definecolor{soft}{HTML}{F2F6F8}     % light panel
+\definecolor{ink}{HTML}{1F2933}
+
+\color{ink}
+\captionsetup{font=small,labelfont={bf,color=deep}}
+\setlist{itemsep=2pt,topsep=4pt}
+
+% ---------------- headings ----------------
+\titleformat{\section}{\Large\bfseries\sffamily\color{deep}}{\thesection}{0.8em}{}
+\titleformat{\subsection}{\large\bfseries\sffamily\color{uavc}}{\thesubsection}{0.7em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\sffamily\color{ink}}{\thesubsubsection}{0.6em}{}
+\pagestyle{fancy}\fancyhf{}
+\fancyhead[L]{\small\sffamily\color{deep}Cutting the Cord -- Phase 2}
+\fancyhead[R]{\small\sffamily\color{deep}Team 6}
+\fancyfoot[C]{\small\sffamily\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ---------------- boxes ----------------
+\newtcolorbox{whatbox}[1][]{enhanced,breakable,colback=uavc!6,colframe=uavc,boxrule=0.6pt,arc=2mm,
+  fonttitle=\sffamily\bfseries,title={What this step does},#1}
+\newtcolorbox{whybox}[1][]{enhanced,breakable,colback=hoc!7,colframe=hoc,boxrule=0.6pt,arc=2mm,
+  fonttitle=\sffamily\bfseries,title={Why it is designed this way},#1}
+\newtcolorbox{flawbox}[1][]{enhanced,breakable,colback=bad!5,colframe=bad,boxrule=0.6pt,arc=2mm,
+  fonttitle=\sffamily\bfseries,#1}
+\newtcolorbox{keybox}[1][]{enhanced,breakable,colback=deep!5,colframe=deep,boxrule=0.6pt,arc=2mm,
+  fonttitle=\sffamily\bfseries,title={Key idea},#1}
+\newtcolorbox{limitbox}[1][]{enhanced,breakable,colback=black!3,colframe=black!55,boxrule=0.6pt,arc=2mm,
+  fonttitle=\sffamily\bfseries,title={Honest limitation},#1}
+\newtcolorbox{stepbox}[2]{enhanced,breakable,colback=white,colframe=#1,boxrule=0.8pt,arc=2mm,
+  fonttitle=\sffamily\bfseries,coltitle=white,colbacktitle=#1,title={#2}}
+
+% ---------------- theorem-like ----------------
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{finding}{Finding}
+
+% ---------------- notation macros ----------------
+\newcommand{\TA}{\mathsf{TA}}
+\newcommand{\Ta}{\mathcal{T}_a}
+\newcommand{\Tb}{\mathcal{T}_b}
+\newcommand{\U}{\mathcal{U}}
+\newcommand{\V}{\mathcal{V}}
+\newcommand{\Ent}{\mathcal{E}}
+\newcommand{\M}{\mathcal{M}}
+\newcommand{\G}{\mathbb{G}}
+\newcommand{\Zq}{\mathbb{Z}_q^{*}}
+\newcommand{\Ppub}{P_{\mathrm{pub}}}
+\newcommand{\Tpub}{T_{\mathrm{pub}}}
+\newcommand{\PID}{\mathit{PID}}
+\newcommand{\RID}{\mathit{RID}}
+\newcommand{\ID}{\mathit{ID}}
+\newcommand{\pk}{\mathit{pk}}
+\newcommand{\sk}{\mathit{sk}}
+\newcommand{\ep}{\mathit{ep}}
+\newcommand{\ts}{\mathit{ts}}
+\newcommand{\GK}{\mathit{GK}}
+\newcommand{\VK}{\mathit{VK}}
+\newcommand{\Tk}{\mathit{Tk}}
+\newcommand{\hk}{\mathit{hk}}
+\newcommand{\Enc}{\mathsf{Enc}}
+\newcommand{\Dec}{\mathsf{Dec}}
+\newcommand{\KDF}{\mathsf{KDF}}
+\newcommand{\MAC}{\mathsf{MAC}}
+\newcommand{\Hz}{H_0}
+\newcommand{\Ho}{H_1}
+\newcommand{\Ht}{H_2}
+\newcommand{\Hd}{H_3}
+\newcommand{\cat}{\,\|\,}
+\newcommand{\yes}{\textcolor{good}{\ding{51}}}
+\newcommand{\no}{\textcolor{bad}{\ding{55}}}
+\newcommand{\halfmark}{\textcolor{hoc}{\ding{108}}}
+\newcommand{\steplabel}[2]{\textcolor{#1}{\textsf{\textbf{#2}}}}
+
+% ---------------- TikZ styles ----------------
+\tikzset{
+  ent/.style={draw=#1,fill=#1!12,very thick,rounded corners=3pt,minimum width=2.3cm,minimum height=0.9cm,
+              align=center,font=\sffamily\small\bfseries,drop shadow={opacity=0.15}},
+  ent/.default=deep,
+  msg/.style={-{Stealth[length=2.6mm]},thick,draw=#1},
+  msg/.default=ink,
+  lbl/.style={font=\scriptsize\sffamily,fill=white,inner sep=1.5pt,align=center},
+  life/.style={draw=black!30,dashed},
+  act/.style={draw=#1,fill=#1!8,rounded corners=2pt,font=\scriptsize\sffamily,align=left,inner sep=3pt},
+  tier/.style={draw=#1,fill=#1!5,rounded corners=6pt,dashed,thick},
+}
+\pgfplotsset{every axis/.append style={font=\small\sffamily,grid=major,grid style={black!10},
+  legend style={font=\scriptsize\sffamily,draw=black!20,fill=white,fill opacity=0.9,text opacity=1},
+  tick label style={font=\scriptsize\sffamily}, label style={font=\small\sffamily}}}
+
+\pgfplotstableread[col sep=comma]{data/ga_cost.csv}\gacost
+\pgfplotstableread[col sep=comma]{data/e2e.csv}\etoe
+\pgfplotstableread[col sep=comma]{data/keybytes.csv}\keybytes
+\pgfplotstableread[col sep=comma]{data/isolation.csv}\isolation
+\pgfplotstableread[col sep=comma]{data/rekey.csv}\rekey
+
+% =====================================================================
+\begin{document}
+
+% ---------------- title page ----------------
+\begin{titlepage}
+\begin{tikzpicture}[remember picture,overlay]
+  \fill[deep] (current page.north west) rectangle ([yshift=-9.2cm]current page.north east);
+  \foreach \x/\y/\c in {2.2/-2.2/uavc,4.0/-1.3/uavc,6.0/-2.6/uavc,15.5/-1.6/hoc,17.4/-2.8/vehc,13.6/-2.9/uavc}{
+     \node[circle,fill=\c,minimum size=4pt,inner sep=0] at ([xshift=\x cm,yshift=\y cm]current page.north west) {};}
+  \draw[white!40,thin,dashed] ([xshift=2.2cm,yshift=-2.2cm]current page.north west)--([xshift=4cm,yshift=-1.3cm]current page.north west)
+       --([xshift=6cm,yshift=-2.6cm]current page.north west);
+  \draw[white!40,thin,dashed] ([xshift=13.6cm,yshift=-2.9cm]current page.north west)--([xshift=15.5cm,yshift=-1.6cm]current page.north west)
+       --([xshift=17.4cm,yshift=-2.8cm]current page.north west);
+  \node[anchor=north west,text width=16.5cm,align=left,white] at ([xshift=2.2cm,yshift=-3.3cm]current page.north west)
+   {{\sffamily\small PHASE 2 \;\textbullet\; RESEARCH GAP, PROPOSED FRAMEWORK AND ANALYSIS}\\[6pt]
+    {\sffamily\bfseries\fontsize{30}{34}\selectfont Cutting the Cord}\\[6pt]
+    {\sffamily\Large A Three-Tier, Authority-Independent Authentication and Key Management Framework for TUAV-Assisted Infrastructure-Less IoV}};
+\end{tikzpicture}
+\vspace*{8.6cm}
+
+{\sffamily\large\textbf{Swaraj Kumar} (2025202016) \quad \textbf{Hritik Ranjan} (2025202031) \quad \textbf{Harsh Raj} (2025202005)}\\[3pt]
+{\sffamily Team 6 \;\textbullet\; October 2026}
+
+\vspace{0.6cm}
+\begin{tcolorbox}[enhanced,colback=soft,colframe=deep,boxrule=0.5pt,arc=2mm,title={\sffamily\bfseries Abstract},fonttitle=\sffamily\bfseries]
+\small
+Tan, Zheng and Vijayakumar (IEEE T-ITS, 2023) propose a tethered UAV (TUAV) that replaces destroyed roadside units so that an
+Internet of Vehicles (IoV) keeps working after a disaster. We studied the scheme equation by equation and found that it does not
+achieve the property it is named for. Every authentication is relayed over a satellite link to a cloud Trusted Authority (TA), which
+performs all the pairings, so authentication stops completely when that link is lost. Because the UAV credential depends only on
+values the TA already knows, the TA can impersonate any UAV, which falsifies the claimed key-escrow resilience and non-repudiation.
+We also show that the CRT-based group key leaks every member's decrypting key to every other member, so a \emph{revoked} UAV can still
+compute the new group key, and that the broadcast coefficient set grows to about 143\,KiB per acknowledgement for 120 UAVs instead of
+the reported 104 bytes per UAV. We confirmed the revocation break and the sizes with a script.
+We then propose \textbf{Cutting the Cord}, a framework in which the TA acts only \emph{offline} (registration and later tracing) and
+three tiers run without it: \textbf{(C1)} escrow-free, pairing-free certificateless batch authentication of UAVs by the TUAV, with a
+bounded fallback when a batch fails and per-member encrypted group keys that make revocation secure; \textbf{(C2)} authentication of
+\emph{vehicles}, which the base paper leaves out, relayed through authenticated UAVs and rooted in the same TA public key; and
+\textbf{(C3)} lightweight handover between neighbouring TUAVs using encrypted tickets.
+Priced with the base paper's own MIRACL constants, our TUAV authenticates and keys 120 UAVs in about \textbf{228\,ms}. Charged
+honestly (with the TA's pairings counted), the base scheme needs about \textbf{3720\,ms} plus the satellite round trip, and its
+key-distribution traffic falls from about 16.7\,MiB to 8\,KiB.
+\end{tcolorbox}
+
+\vspace{0.3cm}
+{\small\sffamily\textbf{Keywords:} infrastructure-less IoV, tethered UAV, certificateless authentication, batch verification, group key management, revocation, handover, conditional privacy.}
+\end{titlepage}
+
+% ---------------- reading guide ----------------
+\section*{How to read this document}
+\addcontentsline{toc}{section}{How to read this document}
+The document follows the structure of a research paper, written to be easy to study. Five kinds of coloured box appear:
+
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\tcbox[colback=uavc!6,colframe=uavc,on line,boxrule=0.6pt,size=small]{\sffamily\small What this step does} & the purpose of a protocol step, in plain words\\[3pt]
+\tcbox[colback=hoc!7,colframe=hoc,on line,boxrule=0.6pt,size=small]{\sffamily\small Why it is designed this way} & the reason behind each design choice\\[3pt]
+\tcbox[colback=bad!5,colframe=bad,on line,boxrule=0.6pt,size=small]{\sffamily\small Finding} & a flaw we found in the base paper\\[3pt]
+\tcbox[colback=deep!5,colframe=deep,on line,boxrule=0.6pt,size=small]{\sffamily\small Key idea} & the one sentence to remember\\[3pt]
+\tcbox[colback=black!3,colframe=black!55,on line,boxrule=0.6pt,size=small]{\sffamily\small Honest limitation} & what our proposal does \emph{not} solve\\
+\end{tabular}
+\end{center}
+
+Colours are used consistently: \textcolor{deep}{\textbf{dark blue}} = Trusted Authority, \textcolor{uavc}{\textbf{teal}} = UAV tier (C1),
+\textcolor{vehc}{\textbf{violet}} = vehicle tier (C2), \textcolor{hoc}{\textbf{amber}} = TUAV handover (C3), \textcolor{bad}{\textbf{red}} = flaws and attacks,
+\textcolor{good}{\textbf{green}} = properties that hold.
+Section~\ref{sec:base} uses the \emph{base paper's} symbols ($\sigma_i,\Gamma_i,\kappa_{tu},\Lambda(x)$); Sections~\ref{sec:prelim}--\ref{sec:perf}
+use \emph{our} symbols (Table~\ref{tab:notation}). The two sets are kept apart on purpose. In particular, $\sigma_i$ always means
+the base paper's ``decrypting key'', and our signatures are written $(R,v)$.
+
+\tableofcontents
+\newpage
+
+\input{sections/01_intro}
+\input{sections/02_findings}
+\input{sections/03_model}
+\input{sections/04_framework_c1}
+\input{sections/05_c2_c3}
+\input{sections/06_security}
+\input{sections/07_performance}
+\input{sections/08_discussion}
+
+\end{document}

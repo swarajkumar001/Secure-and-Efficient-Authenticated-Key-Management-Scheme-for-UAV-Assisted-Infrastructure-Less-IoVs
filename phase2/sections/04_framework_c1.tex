@@ -1,0 +1,237 @@
+% =====================================================================
+\section{Proposed Framework: Setup and Offline Registration}\label{sec:setup}
+% =====================================================================
+The framework has five phases (Figure~\ref{fig:phases}). Only Phase~0 involves the TA; Phases~1--3 run in the field without it; Phase~4 is optional
+and happens whenever the TA becomes reachable, without blocking anything.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[font=\sffamily\small,
+  ph/.style={draw=#1,fill=#1!12,very thick,rounded corners=4pt,minimum width=2.75cm,minimum height=1.55cm,align=center,drop shadow={opacity=0.15}}]
+  \node[ph=deep] (p0) at (0,0)   {\textbf{Phase 0}\\Setup \&\\registration\\[-1pt]{\scriptsize ST, RG}};
+  \node[ph=uavc] (p1) at (3.25,0) {\textbf{Phase 1 (C1)}\\UAV auth \&\\group key\\[-1pt]{\scriptsize UA, RK}};
+  \node[ph=vehc] (p2) at (6.5,0) {\textbf{Phase 2 (C2)}\\Vehicle auth \&\\regional key\\[-1pt]{\scriptsize VA}};
+  \node[ph=hoc]  (p3) at (9.75,0) {\textbf{Phase 3 (C3)}\\TUAV link \&\\handover\\[-1pt]{\scriptsize HO}};
+  \node[ph=deep,dashed] (p4) at (13,0) {\textbf{Phase 4}\\Tracing \&\\global revocation\\[-1pt]{\scriptsize TR}};
+  \foreach \a/\b in {p0/p1,p1/p2,p2/p3,p3/p4}{ \draw[-{Stealth[length=3mm]},very thick,black!50] (\a) -- (\b); }
+  \draw[decorate,decoration={brace,amplitude=6pt,mirror},thick,uavc] (1.9,-1.05) -- node[below=7pt,text=uavc]{\textbf{in the field -- no TA needed}} (11.1,-1.05);
+  \node[above=2pt of p0,font=\scriptsize\sffamily\bfseries,text=deep] {before deployment};
+  \node[above=2pt of p4,font=\scriptsize\sffamily\bfseries,text=deep] {whenever reachable};
+\end{tikzpicture}
+\caption{Phases of the framework and their step labels.}
+\label{fig:phases}
+\end{figure}
+
+\subsection{System setup (ST)}
+\begin{stepbox}{deep}{ST1--ST2 \;(TA, once)}
+\steplabel{deep}{ST1.} $\TA$ chooses $(\G,q,P)$, the master key $s\in\Zq$ and the tracing key $t\in\Zq$, and sets $\Ppub=sP$, $\Tpub=tP$.\\
+\steplabel{deep}{ST2.} $\TA$ publishes $\mathit{params}=\langle \G,q,P,\Ppub,\Tpub,\Hz,\Ho,\Ht,\Hd,\KDF,\Enc,\MAC\rangle$ and keeps $(s,t)$ secret.
+\end{stepbox}
+\begin{whybox}
+Two separate TA keys give \emph{separation of duties}. $s$ certifies keys and $t$ opens pseudonyms, so the two can be held by different offices
+(for example, the network operator and the law-enforcement agency). Leaking one does not give the power of the other.
+\end{whybox}
+
+\subsection{Entity registration (RG)}
+Every UAV, vehicle and TUAV registers once, over a secure channel, before deployment. A mission is divided into $m$ \emph{epochs}
+(for example 15 minutes each), and an entity receives one pseudonym credential per epoch.
+
+\begin{stepbox}{deep}{RG1--RG4 \;(entity $\Ent$ $\leftrightarrow$ TA, offline)}
+\steplabel{deep}{RG1.} For each epoch $\ep=1..m$, $\Ent$ picks a secret value $x^{(\ep)}_\Ent\in\Zq$ and computes $X^{(\ep)}_\Ent=x^{(\ep)}_\Ent P$.
+It sends $\RID_\Ent$ and $\{X^{(\ep)}_\Ent\}$ to $\TA$, together with a Schnorr signature under each $x^{(\ep)}_\Ent$ on $\RID_\Ent\cat X^{(\ep)}_\Ent$
+(proof of possession). \textbf{The values $x^{(\ep)}_\Ent$ never leave the entity.}\\[2pt]
+\steplabel{deep}{RG2.} For each $\ep$, $\TA$ picks $\rho,y\in\Zq$ and computes
+\[
+ \PID^1=\rho P,\qquad \PID^2=\RID_\Ent\oplus\Hz(\rho\,\Tpub\cat\ep),\qquad Y=yP,
+\]
+\[
+ h=\Ho(\PID,\ep,X^{(\ep)}_\Ent,Y),\qquad d=y+s\,h \bmod q .
+\]
+$\TA$ stores $(\RID_\Ent,\{\PID^{(\ep)}\})$ and the signed RG1 record, then erases $\rho,y$.\\[2pt]
+\steplabel{deep}{RG3.} $\TA\to\Ent$: $\{(\PID^{(\ep)},Y^{(\ep)},d^{(\ep)})\}_{\ep=1}^{m}$.\\[2pt]
+\steplabel{deep}{RG4.} $\Ent$ checks $d^{(\ep)}P\overset{?}{=}Y^{(\ep)}+h^{(\ep)}\Ppub$ for every $\ep$, and stores the credentials.
+\end{stepbox}
+\noindent A TUAV registers in the same way with its fixed public identity $\ID_a$ in place of a pseudonym and a single credential
+$(X_a,Y_a,d_a)$, $h_a=\Ho(\ID_a,0,X_a,Y_a)$.
+
+\paragraph{Correctness of the keys.} With $\sk=x+d$ and $\pk=X+Y+h\Ppub$:\;
+$\sk\cdot P=xP+(y+sh)P=X+Y+h\Ppub=\pk$.
+\emph{From here on, inside one epoch we write $x_\Ent,X_\Ent,\PID_\Ent,Y_\Ent,d_\Ent,h_\Ent$ without the superscript.}
+
+\begin{whatbox}
+Each entity ends up with a full key pair $(\sk_\Ent,\pk_\Ent)$ per epoch. The TA certified half of it ($d_\Ent$) but never saw the other half ($x_\Ent$).
+Anyone holding only $\Ppub$ can check that $\pk_\Ent$ was certified, because $\pk_\Ent$ contains $h_\Ent\Ppub$.
+\end{whatbox}
+\begin{whybox}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Escrow-free (fixes Finding~\ref{f:escrow}).} Signing needs $\sk=x+d$. The TA knows $d$ but not $x$, so it cannot sign for $\Ent$.
+  \item \textbf{No certificates.} The binding hash $h=\Ho(\PID,\ep,X,Y)$ ties the TA's signature to this exact $X$. An outsider who replaces $X$ changes
+        $h$, and then needs a new $d$, which requires $s$.
+  \item \textbf{Fresh $x^{(\ep)}$ per epoch.} If $X$ were the same in every epoch it would link the pseudonyms together. Per-epoch values keep epochs unlinkable.
+  \item \textbf{Pseudonym = ElGamal-style encryption of $\RID$ under $\Tpub$.} Only the holder of $t$ can open it ($\rho\Tpub=t\,\PID^1$).
+  \item \textbf{Proof of possession and the signed record.} A TA cannot later claim that an entity owns a key it does not, which supports non-repudiation in disputes.
+\end{itemize}
+\end{whybox}
+
+% =====================================================================
+\section{C1: Autonomous UAV Authentication and Group Key Management}\label{sec:c1}
+% =====================================================================
+\begin{keybox}
+The TUAV verifies all requesting UAVs \emph{itself}, using only $\Ppub$, in one small-exponent batch. Each verified UAV receives the
+group key encrypted under its own fresh Diffie--Hellman key. No satellite link, no pairings, no CRT polynomial.
+\end{keybox}
+
+\begin{figure}[H]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[font=\sffamily\small]
+  \node[ent=hoc]  (t) at (0,0)  {TUAV $\Ta$};
+  \node[ent=uavc] (u) at (11,0) {UAV $\U_i$ \;($\times n$)};
+  \node[ent=deep,dashed,minimum width=2cm] (ta) at (5.5,0) {TA (offline)};
+  \draw[life] (t.south) -- ++(0,-10.3);  \draw[life] (u.south) -- ++(0,-10.3);
+  \draw[black!15,line width=4pt] (ta.south) -- ++(0,-10.3);
+  \node[font=\scriptsize\sffamily,text=black!45,rotate=90] at (5.5,-6) {never contacted};
+
+  \node[act=hoc,anchor=north] at (0,-0.9) {UA1: pick $e_a$, $E_a=e_aP$;\\ sign $(\ID_a,E_a,\ts_a)$};
+  \draw[msg=hoc] (0,-2.0) -- node[lbl,above]{UA1 \;$\mathit{Beacon}_a=\langle \ID_a,X_a,Y_a,E_a,\ts_a,R_a,v_a\rangle$} (11,-2.0);
+  \node[act=uavc,anchor=north] at (11,-2.3) {verify beacon (once);\\ pick $e_i$, $r_i$;\ \ $E_i=e_iP$, $R_i=r_iP$\\ $c_i=\Ht(m_i\cat\PID_i\cat\ep\cat X_i\cat Y_i\cat R_i\cat\ts_i)$\\ $v_i=r_i+c_i\,\sk_i$};
+  \draw[msg=uavc] (11,-4.3) -- node[lbl,above]{UA2 \;$\mathit{Req}_i=\langle \PID_i,\ep,X_i,Y_i,E_i,\ts_i,R_i,v_i\rangle$} (0,-4.3);
+  \node[act=hoc,anchor=north] at (0,-4.6) {UA3: filter; batch-verify $n$ requests\\ with weights $\lambda_i$; on failure $\to$ fallback};
+  \node[act=hoc,anchor=north] at (0,-5.8) {UA4: $K_i=\KDF(e_aE_i\cat\PID_i\cat\ID_a\cat\ts_i)$\\ $C_i=\Enc(K_i,\GK_a\cat\nu;\,\Hd(\PID_i)\cat\nu\cat\ts_3)$};
+  \draw[msg=hoc] (0,-7.3) -- node[lbl,above]{UA4 \;$\mathit{ACK}=\langle \ID_a,\ts_3,\nu,\{\Hd(\PID_i),C_i\}_{i\in S}\rangle$ \;(one broadcast)} (11,-7.3);
+  \node[act=uavc,anchor=north] at (11,-7.6) {UA5: $K_i=\KDF(e_iE_a\cat\PID_i\cat\ID_a\cat\ts_i)$\\ $\GK_a\cat\nu=\Dec(K_i,C_i)$ \;$\Rightarrow$ TUAV authentic\\ erase $e_i$};
+  \node[draw=good,fill=good!10,rounded corners,font=\scriptsize\sffamily\bfseries,text=good] at (5.5,-9.6) {mutual authentication + shared $\GK_a$ \;--\; one local round trip};
+\end{tikzpicture}}
+\caption{C1 message flow. Compare with Figure~\ref{fig:base}: the satellite round trip and the TA's pairings are gone.}
+\label{fig:c1}
+\end{figure}
+
+\subsection{Steps}
+Let $m_i=(\texttt{"join"}\cat\ID_a\cat E_a\cat E_i)$ be the content a UAV signs; the TUAV can rebuild $m_i$ from the request and its own beacon.
+
+\begin{stepbox}{uavc}{UA1 \;Beacon (TUAV, periodic)}
+$\Ta$ picks a fresh $e_a\in\Zq$, sets $E_a=e_aP$, signs $(\ID_a\cat E_a\cat\ts_a)$ with $\sk_a$ to obtain $(R_a,v_a)$, and broadcasts
+$\mathit{Beacon}_a=\langle\ID_a,X_a,Y_a,E_a,\ts_a,R_a,v_a\rangle$. A new $e_a$ is drawn every beacon period, and the old one is erased when the period ends.
+\end{stepbox}
+
+\begin{stepbox}{uavc}{UA2 \;Signed join request (each UAV)}
+$\U_i$ checks $|\ts_a-\ts_{\mathrm{now}}|\le\Delta t$ and verifies the beacon once: $v_aP\overset{?}{=}R_a+c_a\,\pk_a$.
+It picks $e_i,r_i\in\Zq$, computes $E_i=e_iP$, $R_i=r_iP$,
+\[
+  c_i=\Ht(m_i\cat\PID_i\cat\ep\cat X_i\cat Y_i\cat R_i\cat\ts_i),\qquad v_i=r_i+c_i\,\sk_i \bmod q,
+\]
+and sends $\mathit{Req}_i=\langle\PID_i,\ep,X_i,Y_i,E_i,\ts_i,R_i,v_i\rangle$.
+\textbf{Cost: two scalar multiplications} (plus one beacon verification per beacon period).
+\end{stepbox}
+
+\begin{stepbox}{uavc}{UA3 \;Local batch verification with bounded fallback (TUAV)}
+\textbf{Filter.} Collect the requests of one window. Drop any request whose timestamp is stale, whose $\ep$ is not current, whose $\Hd(\PID_i)\in\mathcal{L}$,
+or whose $\PID_i$ already sent a request in this window.\\[2pt]
+\textbf{Batch test.} Compute $h_i=\Ho(\PID_i,\ep,X_i,Y_i)$ and $c_i$, draw $\lambda_i\in[1,2^{64}]$, and check
+\begin{equation}
+  \Big(\sum_{i=1}^{n}\lambda_iv_i\Big)P\;\overset{?}{=}\;\sum_{i=1}^{n}\lambda_iR_i+\sum_{i=1}^{n}(\lambda_ic_i)\,(X_i+Y_i)+\Big(\sum_{i=1}^{n}\lambda_ic_ih_i\Big)\Ppub .\label{eq:bv}
+\end{equation}
+\textbf{If it holds}, accept all $n$. \textbf{If it fails}, verify each request individually ($v_iP\overset{?}{=}R_i+c_i\pk_i$), accept the valid ones,
+put $\Hd(\PID_i)$ of each invalid one into the eviction list $\mathcal{L}$ for the rest of the epoch, and process the next window in individual mode
+(adaptive mode, Section~\ref{sec:fallback}).
+\end{stepbox}
+
+\begin{stepbox}{uavc}{UA4 \;Group-key delivery (TUAV)}
+Let $S$ be the accepted set. For each $i\in S$: $K_i=\KDF(e_aE_i\cat\PID_i\cat\ID_a\cat\ts_i)$ and
+$C_i=\Enc\big(K_i,\ \GK_a\cat\nu;\ \Hd(\PID_i)\cat\nu\cat\ts_3\big)$. Broadcast \emph{once}
+$\mathit{ACK}=\langle\ID_a,\ts_3,\nu,\{\Hd(\PID_i),C_i\}_{i\in S}\rangle$. $\Ta$ keeps $K_i$ for as long as $\U_i$ is a member.
+\end{stepbox}
+
+\begin{stepbox}{uavc}{UA5 \;Key recovery and TUAV authentication (each UAV)}
+$\U_i$ finds its entry by $\Hd(\PID_i)$, computes $K_i=\KDF(e_iE_a\cat\PID_i\cat\ID_a\cat\ts_i)$ and decrypts $C_i$. If decryption succeeds, then
+$\Ta$ (the holder of $e_a$ behind the \emph{signed} $E_a$) is authentic, and $\U_i$ holds $\GK_a$. $\U_i$ erases $e_i$.
+\end{stepbox}
+
+\paragraph{Correctness.}
+(i) For an honest request, $v_iP=r_iP+c_i\sk_iP=R_i+c_i\pk_i=R_i+c_i(X_i+Y_i)+c_ih_i\Ppub$. Multiplying by $\lambda_i$ and summing gives~\eqref{eq:bv}.
+(ii) $e_aE_i=e_ae_iP=e_iE_a$, so both sides derive the same $K_i$.
+
+\begin{whybox}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Verification only needs $\Ppub$} (fixes Finding~\ref{f:online}). The certificate is ``inside'' $\pk_i$, so the TUAV needs neither the TA nor any secret.
+  \item \textbf{Random weights $\lambda_i$} (fixes Finding~\ref{f:proof}(iii)). Without them, errors in two requests can cancel each other. With 64-bit weights a bad batch passes with probability at most $2^{-64}$.
+  \item \textbf{Request binds $E_a$ and $\ID_a$.} A request is valid only for this TUAV and this beacon period, so it cannot be replayed into another session or another cell.
+  \item \textbf{Ephemeral $e_a,e_i$} (fixes Finding~\ref{f:fs}). They are erased after use, so stealing $(x_i,d_i)$ later reveals no past $K_i$ and hence no past $\GK_a$.
+  \item \textbf{Per-member ciphertexts instead of a CRT polynomial} (fixes Finding~\ref{f:crt}). Each $C_i$ is opened only by $K_i$, and knowing your own $K_i$ says nothing about anyone else's.
+        Size: 68 bytes per member, linear in $n$.
+  \item \textbf{ACK is not signed.} The AEAD tag under $K_i$ already proves that the sender knows $e_a$; a signature would cost more and add nothing.
+  \item \textbf{One pseudonym per epoch.} An evicted UAV cannot simply come back with a fresh pseudonym in the same epoch.
+\end{itemize}
+\end{whybox}
+
+\subsection{When a batch fails: bounded fallback}\label{sec:fallback}
+The classical answer to a failed batch is split-and-retest (binary search for bad signatures~\cite{zaverucha}). We evaluated it for our scheme and found it does
+\emph{not} pay off. A pairing-free batch is only about $2.8\times$ cheaper per signature than individual verification
+($0.98$\,ms versus $2.74$\,ms), so re-testing halves costs more than simply checking everyone (Table~\ref{tab:iso}).
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[font=\sffamily\small,node distance=0.55cm,
+   box/.style={draw=#1,fill=#1!10,rounded corners,thick,minimum width=3.3cm,minimum height=0.8cm,align=center},
+   dia/.style={draw=#1,fill=#1!10,diamond,aspect=2.4,thick,align=center,inner sep=1pt}]
+  \node[box=uavc] (a) {window of $n$ requests};
+  \node[box=uavc,below=of a] (f) {filter: time, epoch,\\ list $\mathcal{L}$, one per $\PID$};
+  \node[dia=hoc,below=of f] (m) {mode?};
+  \node[dia=uavc,below left=0.6cm and 0.4cm of m] (b) {batch \eqref{eq:bv}\\ holds?};
+  \node[box=good,below=0.9cm of b] (ok) {accept all $n$};
+  \node[box=hoc,below right=0.6cm and 0.4cm of m] (ind) {verify each\\ individually};
+  \node[box=good,below=0.9cm of ind] (acc) {accept valid ones;\\ bad $\PID\to\mathcal{L}$};
+  \node[box=hoc,right=1.6cm of ind,minimum width=2.7cm] (sw) {next window:\ individual mode};
+  \draw[-{Stealth},thick] (a) -- (f); \draw[-{Stealth},thick] (f) -- (m);
+  \draw[-{Stealth},thick] (m) -| node[lbl,pos=0.3,above]{batch} (b);
+  \draw[-{Stealth},thick] (m) -| node[lbl,pos=0.3,above]{individual} (ind);
+  \draw[-{Stealth},thick,good] (b) -- node[lbl,right]{yes} (ok);
+  \draw[-{Stealth},thick,bad] (b) -- node[lbl,above]{no} (ind);
+  \draw[-{Stealth},thick] (ind) -- (acc);
+  \draw[-{Stealth},thick] (acc.east) -| node[lbl,pos=0.75,right]{if any bad} (sw.south);
+  \draw[-{Stealth},thick,dashed] (sw.north) |- node[lbl,pos=0.75,above]{after $w$ clean windows: back to batch mode} (f.east);
+\end{tikzpicture}
+\caption{Adaptive verification rule of Step UA3.}
+\label{fig:fallback}
+\end{figure}
+
+\begin{proposition}[Bounded cost under batch poisoning]\label{prop:dos}
+For any number $d\ge1$ of invalid requests in a window of $n$, Step UA3 costs at most $T_{BV}(n)+n\,T_{SV}$, and every valid request is accepted. In
+individual mode it costs exactly $n\,T_{SV}$. With the constants of~\cite{base}, $n=120$: clean $119.9$\,ms, worst case $448.6$\,ms ($3.7\times$),
+individual mode $328.8$\,ms. In the base scheme a single invalid request makes \emph{all} $n$ fail (goodput $0$).
+\end{proposition}
+
+\begin{table}[H]
+\centering\small
+\caption{Verification time at the TUAV for $n=120$ with $d$ invalid requests (average of 200 random placements; \texttt{compute\_results.py}).}
+\label{tab:iso}
+\resizebox{\linewidth}{!}{%
+\pgfplotstabletypeset[
+  columns={pct,d,split_ms,fallback_ms,individual_ms,ours_goodput,orig_goodput},
+  columns/pct/.style={column name={bad (\%)}},
+  columns/d/.style={column name={$d$}},
+  columns/split_ms/.style={column name={split-and-retest (ms)},fixed,precision=1},
+  columns/fallback_ms/.style={column name={our fallback (ms)},fixed,precision=1},
+  columns/individual_ms/.style={column name={individual (ms)},fixed,precision=1},
+  columns/ours_goodput/.style={column name={our goodput (\%)}},
+  columns/orig_goodput/.style={column name={base goodput (\%)}},
+  every head row/.style={before row=\toprule,after row=\midrule},
+  every last row/.style={after row=\bottomrule},
+  row predicate/.code={\ifnum\pgfplotstablerow>5\relax\ifnum\pgfplotstablerow<10\relax\pgfplotstableuserowfalse\fi\fi}
+]\isolation}
+\end{table}
+
+\subsection{Rekeying on leave, eviction and join (RK)}
+\begin{stepbox}{uavc}{RK1--RK2 \;Group-key update (TUAV)}
+\steplabel{uavc}{RK1.} Let $S'$ be the new member set: leavers and evicted members are removed, and joiners are added after their own UA2--UA4. $\Ta$ draws a
+\emph{fresh} $\GK'_a$, sets $\nu\leftarrow\nu+1$, and broadcasts $\langle\ID_a,\ts,\nu,\{\Hd(\PID_i),\Enc(K_i,\GK'_a\cat\nu;\,\Hd(\PID_i)\cat\nu\cat\ts)\}_{i\in S'}\rangle$.\\
+\steplabel{uavc}{RK2.} Each $\U_i\in S'$ decrypts its entry and switches to $\GK'_a$.
+\end{stepbox}
+\begin{whybox}
+A removed member has no $K_j$ of anyone else, so it cannot open any entry. That is the property the CRT construction lost
+(Finding~\ref{f:crt}). A joiner receives only the fresh $\GK'_a$, so it cannot read traffic sent before it joined. A version $\nu$ in the associated
+data stops an old ciphertext being replayed as a new key.
+\end{whybox}
+\paragraph{Optional logarithmic rekeying (LKH).} For very large swarms the TUAV can arrange members as leaves of a binary key tree~\cite{lkh}, using
+$K_i$ as leaf keys. A single leave then costs $2\lceil\log_2 n\rceil-1$ ciphertexts (13 for $n=120$) instead of $n-1$. Section~\ref{sec:perf}
+reports both variants.

@@ -1,0 +1,135 @@
+% =====================================================================
+\section{Security Analysis}\label{sec:security}
+% =====================================================================
+We give proof \emph{sketches} that follow standard techniques; the full game-based proofs and a mechanised ProVerif~\cite{proverif} analysis are part of the
+final report (Section~\ref{sec:plan}). Unlike the base paper's Theorem~1 (Finding~\ref{f:proof}), every reduction below embeds the challenge in a value that
+is \emph{secret}.
+
+\subsection{Authority independence}
+\begin{proposition}[No online TA]\label{prop:indep}
+Steps UA1--UA5, RK1--RK2, VA1--VA5 and HO0--HO4 use only (a) the public $\mathit{params}$, including $\Ppub$, (b) keys stored by the participating
+entities, and (c) messages exchanged between them. No step sends a message to, or waits for a message from, the TA.
+\end{proposition}
+\begin{proof}
+By inspection of each step. Signature verification needs $\Ppub$ only (equation~\eqref{eq:bv}); key derivation uses ephemeral values and stored pairwise keys; tickets use $K_{ab}$.
+\end{proof}
+\noindent Consequently the success probability of authentication is independent of the TA-link availability $A$ (Figure~\ref{fig:avail}), whereas for the base scheme it equals $A$.
+
+\subsection{Unforgeability, escrow-freeness and non-repudiation}
+\begin{theorem}[EUF-CMA]\label{thm:euf}
+In the random-oracle model, if ECDLP is hard in $\G$, no PPT Type-I or Type-II adversary can produce a valid signature $(R,v)$ on a new message under the
+public key of an honest entity, except with negligible probability.
+\end{theorem}
+\begin{proof}[Proof sketch]
+\emph{Type II (malicious TA, knows $s$ and every $d$).} The reduction $\mathcal{B}$ receives $A=aP$, guesses the target entity, and sets its
+$X^*=A$; it knows $s$ and can produce all partial keys. It answers signing queries for the target without $x^*$ by programming the oracle: it picks
+$v,c$ at random, sets $R=vP-c\,\pk^*$ and defines $\Ht(\cdot)=c$. From a forgery, the forking lemma~\cite{forking} gives two signatures with the same $R$ and
+different challenges $c\ne c'$. Then $\sk^*=(v-v')/(c-c')$ and $a=x^*=\sk^*-d^*$.\\
+\emph{Type I (outsider, may replace public keys).} $\mathcal{B}$ sets $\Ppub=A$. It issues partial keys without $s$ by choosing $d,h$ at random and setting
+$Y=dP-h\Ppub$ and $\Ho(\PID,\ep,X,Y)=h$. A forgery under a (possibly replaced) key $\pk^*=X^*+Y^*+h^*\Ppub$ is forked on $\Ht$, which gives
+$\sk^*=\log_P(X^*+Y^*)+h^*a$. Forking again at the $\Ho$ query that fixed $h^*$ gives $\sk^{*\prime}$ with $h^{*\prime}\ne h^*$ and the same $X^*+Y^*$, hence
+$a=(\sk^*-\sk^{*\prime})/(h^*-h^{*\prime})$. This is the standard double-forking argument for pairing-free certificateless and identity-based Schnorr signatures.
+\end{proof}
+
+\begin{theorem}[Escrow-freeness and non-repudiation]\label{thm:escrow}
+The TA cannot produce a signature that verifies under a registered entity's public key, so a valid signature (or a valid UA2 request) can be attributed to that entity.
+\end{theorem}
+\begin{proof}
+This is the Type-II case of Theorem~\ref{thm:euf}. The TA's knowledge ($s$, $d_\Ent$, $\PID_\Ent$) does not include $x_\Ent$, and the RG1 proof of possession binds
+$X_\Ent$ to $\RID_\Ent$. (Contrast with Finding~\ref{f:escrow}.)
+\end{proof}
+
+\subsection{Batch soundness}
+\begin{theorem}[Small-exponent test~\cite{bgr}]\label{thm:batch}
+If at least one request in a batch is invalid, equation~\eqref{eq:bv} holds with probability at most $2^{-\ell_\lambda}$ over the choice of the weights $\lambda_i$.
+\end{theorem}
+\begin{proof}[Proof sketch]
+Write $\Delta_i=v_iP-R_i-c_i\pk_i$, with $\Delta_k\ne O$ for some $k$. Equation~\eqref{eq:bv} is $\sum_i\lambda_i\Delta_i=O$. Fix all $\lambda_i$ with $i\ne k$. Because $\G$
+has prime order, at most one value of $\lambda_k$ satisfies the equation, so the probability is at most $2^{-\ell_\lambda}$. The cancellation attack of
+Finding~\ref{f:proof}(iii) is therefore defeated.
+\end{proof}
+
+\subsection{Mutual authentication and key secrecy}
+\begin{theorem}[C1 key secrecy and mutual authentication]\label{thm:key}
+Under CDH in the random-oracle model and the security of the AEAD scheme: (i) only $\Ta$ and $\U_i$ can compute $K_i$; (ii) $\GK_a$ is known only to $\Ta$ and the
+current members; (iii) $\Ta$ accepts $\U_i$ only if $\U_i$ signed $E_i$ for this beacon; (iv) $\U_i$ accepts only the TUAV that signed $E_a$.
+\end{theorem}
+\begin{proof}[Proof sketch]
+(i) $K_i=\KDF(e_ae_iP\cat\dots)$. An adversary sees $E_a,E_i$ only, and computing $e_ae_iP$ is CDH. Swapping $E_i$ would break the signature on $m_i$
+(Theorem~\ref{thm:euf}), and swapping $E_a$ would break the beacon signature.
+(ii) $C_i$ is AEAD under $K_i$. An insider $\U_k$ knows only its own $K_k$, which is independent of every other $K_i$ (unlike Lemma~\ref{lem:leak}).
+(iii) The request signature covers $E_a,\ID_a,E_i,\ts_i$.
+(iv) Decryption of $C_i$ under $K_i$ succeeds only if the sender knows $e_a$, and $E_a$ is signed by $\sk_a$.
+\end{proof}
+
+\begin{theorem}[Forward secrecy, and key secrecy under membership change]\label{thm:fs}
+(a) Compromise of every long-term key ($x,d$ of members, $\sk_a$ of the TUAV, even $s$ and $t$) after a session does not reveal that session's $K_i$ or $\GK_a$.
+(b) A member removed in RK1 cannot obtain $\GK'_a$ (group forward secrecy). (c) A member that joins cannot obtain an earlier $\GK_a$ (group backward secrecy).
+\end{theorem}
+\begin{proof}[Proof sketch]
+(a) $K_i$ depends on the erased $e_a,e_i$; long-term keys only authenticate. (b) $\GK'_a$ is fresh and encrypted only under $\{K_i\}_{i\in S'}$; the removed
+member knows none of them. This is the property the base scheme loses by Lemma~\ref{lem:leak}. (c) The joiner receives only the fresh $\GK'_a$.
+\end{proof}
+
+\subsection{Privacy}
+\begin{theorem}[Anonymity, epoch-unlinkability, traceability]\label{thm:priv}
+(i) An eavesdropper, or any entity other than the holder of $t$, learns nothing about $\RID_\Ent$ from $\PID_\Ent$. (ii) Requests from different epochs cannot be linked.
+(iii) The holder of $t$ can recover $\RID_\Ent$ from any $\PID_\Ent$.
+\end{theorem}
+\begin{proof}[Proof sketch]
+(i) $\PID^2=\RID\oplus\Hz(\rho\Tpub\cat\ep)$ is hashed-ElGamal encryption; computing $\rho\Tpub$ from $\PID^1=\rho P$ and $\Tpub=tP$ is CDH. (ii) All
+values that appear in a request ($\PID^1,\PID^2,X,Y,E,R,v$) are freshly random per epoch, because RG uses independent $\rho,y,x^{(\ep)}$. (iii) TR1.
+\end{proof}
+\begin{limitbox}
+Within \emph{one} epoch an entity uses one pseudonym, so its sessions in that epoch are linkable. This is a deliberate trade-off: it makes local
+eviction effective (an evicted pseudonym cannot be replaced until the next epoch). The epoch length sets the balance; the base paper's per-session pseudonyms
+resolvable only by the TA cannot support local eviction at all.
+\end{limitbox}
+
+\subsection{Replay and handover security}
+\begin{theorem}[Replay resistance]\label{thm:replay}
+A recorded request, ACK, bundle or handover message is rejected outside its session.
+\end{theorem}
+\begin{proof}[Proof sketch]
+Requests sign $(\ID_a,E_a,\ts_i)$, and $E_a$ changes every beacon period. ACK and rekey entries carry $\nu$ and $\ts$ in their associated data. Bundles carry $\ts$ under
+$\tau$. Tickets carry a single-use nonce $N_\M$ cached until $\mathit{exp}$, and $\tau_\M$ binds the fresh $E'_\M$ and $\ts$.
+\end{proof}
+\begin{theorem}[Handover]\label{thm:ho}
+(i) Only $\Ta,\Tb$ can open or create a valid ticket. (ii) Only the member that holds $K_\M$ can use its ticket. (iii) $K'_\M$ is secret even against a later compromise
+of $K_{ab}$, $K_\M$ or long-term keys. (iv) $\Tb$ never learns $K_\M$.
+\end{theorem}
+\begin{proof}[Proof sketch]
+(i) AEAD under $K_{ab}$ with $\ID_a\cat\ID_b$ as associated data. (ii) $\tau_\M$ requires $\hk_\M=\KDF(K_\M\cat\dots)$. (iii) $K'_\M$ mixes $e'_be'_\M P$ (CDH, ephemeral).
+(iv) The ticket contains $\hk_\M$, a one-way derivative of $K_\M$.
+\end{proof}
+
+\subsection{Security comparison}
+\begin{table}[H]
+\centering\small
+\caption{Security properties. \yes\ holds, \no\ fails, \halfmark\ partially. ``Base (claimed)'' is Table~II of~\cite{base}; ``Base (actual)'' is our analysis.}
+\label{tab:seccomp}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}llccc@{}}
+\toprule
+& Property & Base (claimed) & Base (actual) & \textbf{Ours}\\
+\midrule
+F1 & Unforgeability (with valid proof) & \yes & \halfmark\ proof empty (F.\,5) & \yes\ Thm \ref{thm:euf}\\
+F2 & Conditional privacy & \yes & \yes & \yes\ Thm \ref{thm:priv}\\
+F3 & Session/group key establishment & \yes & \halfmark\ leaks to members (F.\,4) & \yes\ Thm \ref{thm:key}\\
+F4 & Key-escrow resilience & \yes & \no\ (F.\,2) & \yes\ Thm \ref{thm:escrow}\\
+F5 & Scalability & \yes & \no\ $O(n^3)$ bytes (F.\,4) & \yes\ $68n$ B\\
+F6 & Dynamic identity updating & \yes & \yes & \yes\ per epoch\\
+F7 & Forward secrecy & \yes & \no\ (F.\,3) & \yes\ Thm \ref{thm:fs}\\
+F8 & Batch validation (sound) & \yes & \halfmark\ no weights, no fallback & \yes\ Thm \ref{thm:batch}, Prop.\,\ref{prop:dos}\\
+F9 & Unlinkability & \yes & \yes\ per session & \halfmark\ per epoch\\
+F10 & Non-repudiation & \yes & \no\ (F.\,2) & \yes\ Thm \ref{thm:escrow}\\
+F11 & Replay resistance & \yes & \yes & \yes\ Thm \ref{thm:replay}\\
+\midrule
+N1 & Works without online TA & -- & \no\ (F.\,1) & \yes\ Prop.\,\ref{prop:indep}\\
+N2 & Secure revocation (leavers locked out) & -- & \no\ (F.\,4) & \yes\ Thm \ref{thm:fs}\\
+N3 & Bounded cost under batch poisoning & -- & \no & \yes\ Prop.\,\ref{prop:dos}\\
+N4 & Vehicle tier & -- & \no\ out of scope & \yes\ C2\\
+N5 & Multi-TUAV handover & -- & \no & \yes\ Thm \ref{thm:ho}\\
+\bottomrule
+\end{tabular}}
+\end{table}

@@ -1,0 +1,212 @@
+% =====================================================================
+\section{Critical Analysis of the Base Scheme}\label{sec:findings}
+% =====================================================================
+Each finding states \emph{what} fails, \emph{where} in the paper, \emph{why}, and the \emph{impact} on the paper's claims.
+Where possible we confirmed the finding with a script; such cases are marked \emph{verified}.
+
+% ---------------------------------------------------------------------
+\subsection{Finding 1: the scheme is not infrastructure-less}
+\begin{flawbox}[title={Authentication requires a live satellite link to the TA}]
+\begin{finding}\label{f:online}
+In Step GA1 the TUAV uploads every request to the TA. In Step GA2 the TA computes $\sigma_i,\psi_i,\mu_i,\delta_i$, which include all
+pairings and need the secret $s_i$. The verification equation~\eqref{eq:ga3} of Step GA3 has no inputs other than these values. Nothing in the paper
+gives a local fallback.
+\end{finding}
+\textbf{Why it matters.} The paper's own system model says the TA is reached through ``space networks'' (satellite), because the
+terrestrial backhaul is destroyed. In the paper's scenario this link is shared, congested and possibly jammed. If $A$ is the probability that the
+TA link is usable, the probability that an authentication round succeeds is exactly $A$. Its latency also includes one satellite round trip
+(typically about 30--60\,ms for LEO and about 500--600\,ms for GEO).
+
+\textbf{Impact.} When the link is lost, authentication does not slow down, it \emph{stops}. The dependency on infrastructure was not removed; it
+was moved from a roadside pole to a satellite link that nobody in the field controls.
+\end{flawbox}
+
+% ---------------------------------------------------------------------
+\subsection{Finding 2: the TA can impersonate every UAV}
+Look again at Step US2, equation~\eqref{eq:gamma}. The last term uses $h_1(r_i)$, and Step US1 defined $\xi_i=h_1(r_i)$, which is sent in clear
+in Step US3. Substituting gives
+\begin{equation}
+  \Gamma_i=\big[s_i\,h_3(ID_i,ts_2,s_i)\,R_{tu}-h_1(s_i\xi_i)\big]P-\upsilon_i\,\xi_i\,Q_{tu}.\label{eq:gamma2}
+\end{equation}
+Every quantity on the right is either the TA-issued secret $s_i$ or public ($ts_2,\xi_i,\upsilon_i,R_{tu},Q_{tu}$; $ID_i$ needs $id_i$, which
+the TA also holds). The UAV's own random value $r_i$ enters only through $\xi_i$, and $\xi_i$ is public.
+
+\begin{flawbox}[title={Key escrow and no non-repudiation (Table II claims F4 and F10 do not hold)}]
+\begin{finding}\label{f:escrow}
+The TA (or anyone who breaches it) can produce a valid request for any UAV $i$ in any session: choose $r_i$, compute
+$\xi_i,ID_i,\upsilon_i$, then compute $\Gamma_i$ by~\eqref{eq:gamma2}. The request satisfies~\eqref{eq:ga3} for the same algebraic reason an honest one does.
+\end{finding}
+\textbf{Why.} In real certificateless cryptography~\cite{alriyami} a user's full private key combines a KGC-issued \emph{partial} key with a
+\emph{secret value} the user picks and never reveals. Here the user's part ($r_i$) is effectively published, so only the TA-issued part remains.
+The scheme is effectively a shared-key scheme with the TA, presented in pairing notation.
+
+\textbf{Consequences.}
+(i) \emph{Key escrow} (F4 \no): the TA can sign for any UAV. It also computes every $\sigma_i$ in GA2, so it can read the group key $\kappa_{tu}$.
+(ii) \emph{Non-repudiation} (F10 \no): verification needs $\mu_i=\hat e(h_3(\cdot)P,s_iP)$, which only the holder of $s_i$ can compute. Any
+credential could therefore have been produced by the TA, and a UAV can always deny it.
+(iii) The pairings are not even necessary: the TA could check $\Gamma_i$ by recomputing~\eqref{eq:gamma2} with two scalar multiplications.
+\end{flawbox}
+
+% ---------------------------------------------------------------------
+\subsection{Finding 3: no forward secrecy}
+\begin{flawbox}[title={One leaked $s_i$ exposes every past group key (Table II claim F7 does not hold)}]
+\begin{finding}\label{f:fs}
+The decrypting key $\sigma_i=h_1(s_i\xi_i)P$ is a deterministic function of the long-term secret $s_i$ and the public $\xi_i$. An adversary that
+records traffic and later learns $s_i$ (for example by capturing the UAV) recomputes $\sigma_i$ for every recorded session and then
+$\kappa_{tu}=\Lambda(\sigma_i)\bmod\sigma_i$ from the recorded coefficients.
+\end{finding}
+\textbf{Why.} Forward secrecy needs an \emph{ephemeral} secret that is erased after the session, for example a Diffie--Hellman exponent. The scheme has none.
+\end{flawbox}
+
+% ---------------------------------------------------------------------
+\subsection{Finding 4: the CRT group key leaks, and revocation fails}
+\paragraph{(a) The construction is not well defined.}
+Step GA2 defines $\sigma_i=h_1(s_i\xi_i)P$, an \emph{elliptic-curve point}. Step GD1 then multiplies points ($\omega_i=\prod_{j\ne i}\sigma_j$), inverts
+modulo a point ($\varphi_i\equiv\omega_i^{-1}\bmod\sigma_i$), and Step GD6 reduces modulo a point. None of these operations is defined for points.
+Under any reading that makes them work (for example $\sigma_i$ replaced by an integer derived from the point), the paper still omits three conditions
+that correctness requires: the $\sigma_i$ must be pairwise coprime, $\kappa_{tu}<\min_i\sigma_i$, and~\eqref{eq:lambda} must be evaluated over the
+integers, not modulo $q$.
+
+\paragraph{(b) The polynomial reveals everyone's key.}
+\begin{lemma}\label{lem:leak}
+Let $C=\kappa_{tu}\sum_i\omega_i\varphi_i$. Then for every member $j$, \;$\Lambda(\sigma_j)=C$ \;and\; $\Lambda(x)-\Lambda(\sigma_j)=\prod_{i=1}^{n}(x-\sigma_i)$.
+\end{lemma}
+\begin{proof}
+By~\eqref{eq:lambda}, $\Lambda(x)=C+\prod_i(x-\sigma_i)$ and the product vanishes at $x=\sigma_j$. Subtracting gives the second identity.
+\end{proof}
+So any member $j$ knows its own $\sigma_j$, computes the constant $\Lambda(\sigma_j)$, and obtains the monic integer polynomial $\prod_i(x-\sigma_i)$.
+Its roots, which are the decrypting keys of \emph{all} members, can be found in polynomial time (integer root finding). Note also that the coefficients
+$a_1,\dots,a_n$ are exactly the coefficients of $\prod_i(x-\sigma_i)$; only $a_0$ is masked.
+
+\begin{flawbox}[title={A revoked UAV still obtains the new group key (verified)}]
+\begin{finding}\label{f:crt}
+In Step DU1 the TUAV builds $\Lambda^*(x)=\prod_{i\in S'}(x-\sigma_i)+\kappa^*_{tu}\sum_{i\in S'}\omega_i\varphi_i$ over the remaining set $S'$, and
+\emph{reuses} the remaining members' old $\sigma_i$ (the paper presents this as an advantage). A member $k$ that is removed had already learned every
+$\sigma_j$ through Lemma~\ref{lem:leak}. It picks any remaining $j\in S'$ and computes
+\[
+  \kappa^*_{tu}=\Lambda^*(\sigma_j)\bmod\sigma_j .
+\]
+\end{finding}
+\textbf{Verification.} Our script \texttt{scripts/crt\_revocation\_attack.py} builds GD1--GD2 for $n=12$ members with 160-bit prime moduli, recovers
+all twelve $\sigma_i$ from member~0's view, revokes two members, rebuilds $\Lambda^*$ by DU1, and checks the attack:
+\begin{center}
+\begin{tcolorbox}[colback=black!85,colframe=black!85,coltext=white,width=0.82\linewidth,arc=1mm,boxrule=0pt,fontupper=\ttfamily\small]
+correctness holds for all 12 members\\
+(A) insider recovered all sigma\_i: True\\
+\hspace*{1.5em}revoked member's own sigma gives kappa*? False\\
+(B) revoked member, using a stolen sigma, gets kappa*: True
+\end{tcolorbox}
+\end{center}
+\textbf{Impact.} Group forward secrecy after revocation fails, and so does the claim of Theorem~5 that ``removed UAVs are locked out''. A UAV that joins
+once and is then evicted keeps reading the group traffic.
+\end{flawbox}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[font=\sffamily\small]
+  \node[ent=hoc] (tu) at (0,0) {TUAV};
+  \node[draw=black!40,fill=soft,rounded corners,align=center,minimum width=4.6cm] (pub) at (5,0)
+      {broadcast $\{a_0,\dots,a_n\}$\\ $\Lambda(x)=C+\prod_i(x-\sigma_i)$};
+  \draw[msg=hoc] (tu) -- (pub);
+  \node[ent=bad,minimum width=3cm] (k) at (11,0) {revoked UAV $k$};
+  \draw[msg=bad] (pub) -- node[lbl,above]{knows $\sigma_k$} (k);
+  \node[act=bad,anchor=north] (s1) at (11,-1.2) {1) $C=\Lambda(\sigma_k)$\\2) roots of $\Lambda(x)-C$\\ \;\;$\Rightarrow$ every $\sigma_j$};
+  \node[draw=black!40,fill=soft,rounded corners,align=center,minimum width=4.6cm] (pub2) at (5,-3.2)
+      {after DU1: new $\{a^*_k\}$\\ same $\sigma_j$ for staying members};
+  \node[act=bad,anchor=north] (s2) at (11,-3.0) {3) $\kappa^*=\Lambda^*(\sigma_j)\bmod\sigma_j$\\ \textbf{new key recovered}};
+  \draw[msg=hoc] (tu) |- (pub2);
+  \draw[msg=bad] (pub2) -- (s2);
+  \draw[msg=bad,dashed] (s1) -- (s2);
+\end{tikzpicture}
+\caption{Revocation break (Finding~\ref{f:crt}): an insider learns every decrypting key from the public coefficients and later uses a
+staying member's key to open the updated polynomial.}
+\label{fig:crtattack}
+\end{figure}
+
+\paragraph{(c) The real size of the broadcast.}
+The coefficients $a_k$ are integers whose length grows with $n$ (they are products of up to $n$ 160-bit moduli). Table~V of~\cite{base} counts only
+the request, $104n$ bytes. We computed the exact size of $\{a_k\}$ for random 160-bit prime moduli (Table~\ref{tab:crtsize}). Because Step GD3 sends
+the acknowledgement ``one by one to each vehicle'', the total traffic is $n$ times larger again: $O(n^2)$ bits per ACK and $O(n^3)$ in total.
+
+\begin{table}[H]
+\centering\small
+\caption{Measured size of the CRT coefficient set (\texttt{scripts/compute\_results.py}).}
+\label{tab:crtsize}
+\begin{tabular}{@{}rrrr@{}}
+\toprule
+$n$ & per ACK & all $n$ ACKs & paper's Table~V ($104n$) \\
+\midrule
+ 20 &   4.1 KiB &  83.0 KiB &  2.0 KiB \\
+ 60 &  36.0 KiB &   2.11 MiB &  6.1 KiB \\
+120 & 142.7 KiB &  16.72 MiB & 12.2 KiB \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ---------------------------------------------------------------------
+\subsection{Finding 5: the unforgeability proof is empty}
+\begin{flawbox}[title={Theorem 1 reduces to a problem that is not hard}]
+\begin{finding}\label{f:proof}
+The proof of Theorem~1 embeds the CDH instance $(aP,bP)=\big(s_{tu}P,\ (\sum_i\upsilon_i\xi_i)P\big)$. But $\upsilon_i$ and $\xi_i$ are sent in clear in
+every request, so $b=\sum_i\upsilon_i\xi_i$ is public and $abP=b\cdot(s_{tu}P)$ can be computed directly. Solving this ``instance'' is
+not hard, so the reduction proves nothing.
+\end{finding}
+\textbf{Further gaps.} (i) The reduction is built around the TUAV's secret $s_{tu}$, whereas forging a \emph{UAV's} credential should depend on that
+UAV's secret. (ii) Theorems~2--5 are argued only in words. (iii) The batch check~\eqref{eq:ga3} uses no random small exponents~\cite{bgr}. Because
+$\prod_i\psi_i=\hat e\big(\sum_i(\Gamma_i+\sigma_i),P\big)$, replacing $\Gamma_1,\Gamma_2$ by $\Gamma_1+\Delta,\ \Gamma_2-\Delta$ leaves the batch valid
+although both individual credentials are now invalid. (iv) Step GA4 has no else-branch, so a single bad request rejects the whole batch and the
+culprit cannot be identified.
+\end{flawbox}
+
+% ---------------------------------------------------------------------
+\subsection{Finding 6: the cost accounting leaves out the expensive part}\label{sec:f6}
+\begin{flawbox}[title={The reported 151\,ms excludes the TA's pairings (and the satellite delay)}]
+\begin{finding}\label{f:cost}
+Section VI-A states that ``the computation overhead on the TUAV side is considered'' for GA. However, Step GA2 performs, per UAV, three pairings
+($\psi_i,\mu_i,\delta_i$), three scalar multiplications in $\G_1$ and one point addition:
+\[ T_{\TA}=3T_P+3T_{SM\text{-}P}+T_{PA\text{-}P}+2T_{SH}=29.7414\ \text{ms per UAV.} \]
+\end{finding}
+In addition, $\Gamma_i$ is costed in the 160-bit group $\G$ ($T_{SM\text{-}E}$), but GA2 pairs it, so it must live in the pairing group $\G_1$.
+Correcting both (constants from~\cite{base}):
+\begin{center}\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Quantity & reported in~\cite{base} & honest accounting & ratio\\
+\midrule
+UAV signing (US) & 1.8203 ms & 5.3970 ms ($\Gamma_i\in\G_1$) & $3.0\times$\\
+Single verification (SA) & 2.1578 ms & 31.8992 ms + RTT & $14.8\times$\\
+Group auth.\ $n{=}120$ (GA) & 151.19 ms & 3720.16 ms + RTT & $24.6\times$\\
+Request size & 104 B & 192 B ($\Gamma_i\in\G_1$, 128 B) & $1.8\times$\\
+Satellite traffic per UAV & not reported & 192 B up + 512 B down & --\\
+Key ACK, $n{=}120$ & not reported & 142.7 KiB each & --\\
+\bottomrule
+\end{tabular}
+\end{center}
+\textbf{Impact.} With honest accounting the base scheme is the \emph{slowest} of the five schemes it compares (Mei 696\,ms, Kumar 1985\,ms, Ali 333\,ms,
+Xu 1668\,ms at $n{=}120$), and it is the only one that needs a wide-area round trip.
+\end{flawbox}
+
+% ---------------------------------------------------------------------
+\subsection{Summary of findings}
+\begin{table}[H]
+\centering\small
+\caption{Our findings mapped to the base paper's claims.}
+\label{tab:findings}
+\begin{tabularx}{\linewidth}{@{}c>{\raggedright\arraybackslash}X l l c@{}}
+\toprule
+\# & What fails & Where & Claim affected & Verified\\
+\midrule
+1 & Authentication needs a live satellite link to the TA & GA1--GA3 & ``infrastructure-less'' & by inspection\\
+2 & TA can forge any UAV; verification needs $s_i$ & US2, GA2 & F4, F10 & algebraic\\
+3 & Past group keys recoverable from $s_i$ & GA2, GD6 & F7 & algebraic\\
+4 & Every member learns all $\sigma_i$; revoked UAV gets new key & GD2, DU1 & F3, F5, Thm 5 & script\\
+5 & Theorem 1's reduction is empty; batch check unsound; no failure branch & Thm 1, GA3--4 & F1, F8 & algebraic\\
+6 & TA pairings and satellite RTT omitted; $\Gamma_i$ in wrong group & Sec. VI & Tables III--V & recomputed\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{keybox}
+All six findings share one root cause: \textbf{the TA is inside every operation}. It holds every secret, performs every check, and is reachable only over the
+link the disaster degrades. Removing the TA from the field is therefore the central design goal of our framework.
+\end{keybox}

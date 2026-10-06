@@ -1,0 +1,141 @@
+% =====================================================================
+\section{Performance Analysis}\label{sec:perf}
+% =====================================================================
+\paragraph{Method.} For a fair comparison we use \emph{exactly} the operation timings of the base paper (MIRACL, 80-bit level, Section~VI-A of~\cite{base}):
+$T_P=7.2232$, $T_{SM\text{-}P}=2.6784$, $T_{PA\text{-}P}=0.0342$, $T_{SM\text{-}E}=0.9018$, $T_{SSM\text{-}E}=0.0475$, $T_{PA\text{-}E}=0.0107$,
+$T_{ME}=0.6256$, $T_{SH}=0.0012$\,ms. Symmetric operations (KDF, AEAD, MAC on short inputs) are charged as $T_{SH}$. Sizes also follow the base paper:
+$|\G|=40$\,B, $|\G_1|=|\G_2|=128$\,B, hash 20\,B, timestamp 4\,B; an AEAD ciphertext of a 16-byte key with version, nonce and tag is 48\,B. All numbers are produced by
+\texttt{scripts/compute\_results.py}.
+\begin{limitbox}
+These are \emph{analytical} costs (operation counts times published timings), the same method the base paper used. Real measurements on a prototype are
+planned (Section~\ref{sec:plan}). Both schemes are priced with the same constants, so the comparison is fair even though absolute values on real hardware will differ.
+\end{limitbox}
+
+\subsection{Computation}
+\begin{table}[H]
+\centering\small
+\caption{Computation cost (ms). ``Base (honest)'' adds the TA's GA2 work ($29.7414$\,ms per UAV) and places $\Gamma_i$ in $\G_1$.}
+\label{tab:comp}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X ccc@{}}
+\toprule
+Operation & Base (reported) & Base (honest) & \textbf{Ours}\\
+\midrule
+UAV signing & $1.8203$ & $5.3970$ & $\mathbf{1.8048}$ \;($2T_{SM\text{-}E}+T_{SH}$)\\
+Single verification & $2.1578$ & $31.8992$ + RTT & $\mathbf{2.7399}$ \;($3T_{SM\text{-}E}+3T_{PA\text{-}E}+2T_{SH}$)\\
+Group verification, $n$ & $1.2524n+0.9054$ & $30.9938n+0.9054$ + RTT & $\mathbf{0.9838n+1.8036}$\\
+\quad at $n=120$ & $151.19$ & $3720.16$ + RTT & $\mathbf{119.86}$\\
+Group verification + key delivery, $n=120$ & not reported & $\ge 3720.16$ + RTT & $\mathbf{228.36}$ \;($1.8880n+1.8036$)\\
+Member: receive key (incl.\ beacon check) & not reported & -- & $3.6441$\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[width=0.92\linewidth,height=7.4cm,xlabel={number of UAVs $n$},ylabel={TUAV-side cost (ms)},
+   xmin=20,xmax=120,ymin=0,ymax=4000,legend style={at={(0.5,-0.18)},anchor=north,legend columns=3},
+   cycle list={{bad,very thick,mark=*},{bad,dashed,mark=o},{black!45,mark=square},{black!45,mark=triangle},{black!45,mark=diamond},{black!45,mark=x},{uavc,very thick,mark=*},{good,very thick,mark=square*}}]
+  \addplot table[x=n,y=orig_honest]{\gacost}; \addlegendentry{Base, honest (TA pairings incl.)}
+  \addplot table[x=n,y=orig]{\gacost};        \addlegendentry{Base, as reported}
+  \addplot table[x=n,y=kumar]{\gacost};       \addlegendentry{Kumar et al.}
+  \addplot table[x=n,y=xu]{\gacost};          \addlegendentry{Xu et al.}
+  \addplot table[x=n,y=mei]{\gacost};         \addlegendentry{Mei et al.}
+  \addplot table[x=n,y=ali]{\gacost};         \addlegendentry{Ali et al.}
+  \addplot table[x=n,y=ours_bv]{\gacost};     \addlegendentry{\textbf{Ours: batch verification}}
+  \addplot table[x=n,y=ours_total]{\gacost};  \addlegendentry{\textbf{Ours: verification + key delivery}}
+\end{axis}
+\end{tikzpicture}
+\caption{Group authentication cost versus $n$ (satellite RTT \emph{not} added to the base scheme here). Counted honestly, the base scheme is the most expensive of all six.}
+\label{fig:gacost}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[width=0.48\linewidth,height=6.2cm,xlabel={number of UAVs $n$},ylabel={time to authenticate + key (ms)},
+   xmin=20,xmax=120,ymin=0,ymax=6000,legend pos=north west,legend style={font=\tiny\sffamily}]
+  \addplot[bad,very thick,mark=*] table[x=n,y=orig_geo]{\etoe}; \addlegendentry{Base, GEO (RTT 600)}
+  \addplot[hoc,very thick,mark=triangle*] table[x=n,y=orig_leo]{\etoe}; \addlegendentry{Base, LEO (RTT 50)}
+  \addplot[bad,dashed,mark=o] table[x=n,y=orig_reported]{\etoe}; \addlegendentry{Base, as reported}
+  \addplot[uavc,very thick,mark=square*] table[x=n,y=ours]{\etoe}; \addlegendentry{Ours (no link)}
+\end{axis}
+\end{tikzpicture}\hfill
+\begin{tikzpicture}
+\begin{axis}[width=0.48\linewidth,height=6.2cm,xlabel={TA-link availability $A$ (\%)},ylabel={authentication success (\%)},
+   xmin=0,xmax=100,ymin=0,ymax=105,legend pos=south west,legend style={font=\tiny\sffamily},x dir=reverse]
+  \addplot[uavc,very thick,domain=0:100,samples=2] {100}; \addlegendentry{Ours}
+  \addplot[hoc,thick,dashed,domain=0:100,samples=60] {100*(1-(1-x/100)^3)}; \addlegendentry{Base, 3 retries (3$\times$ RTT)}
+  \addplot[bad,very thick,domain=0:100,samples=2] {x}; \addlegendentry{Base, one attempt}
+\end{axis}
+\end{tikzpicture}
+\caption{Left: end-to-end time with the satellite round trip charged to the base scheme. Right: \emph{analytical} availability. The base scheme falls to
+zero with the link; ours does not depend on it (Proposition~\ref{prop:indep}).}
+\label{fig:avail}
+\end{figure}
+
+\begin{whybox}[title={Why our scheme is faster even though the TUAV now verifies}]
+The base scheme looks cheap only because the expensive part (three pairings per UAV, about 21.7\,ms) runs on the TA and is left out of the count. Our
+verification needs no pairings at all: a batch costs about one elliptic-curve scalar multiplication (0.90\,ms) per UAV. Removing the TA from the loop therefore
+\emph{reduces} the total work while also removing the wide-area round trip. The extra cost we \emph{do} add is the per-member ECDH for key delivery ($0.90$\,ms per
+UAV), which buys forward secrecy and secure revocation.
+\end{whybox}
+
+\subsection{Communication}
+\begin{table}[H]
+\centering\small
+\caption{Communication overhead (bytes).}
+\label{tab:comm}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X ccc@{}}
+\toprule
+Message & Base (reported) & Base (honest) & \textbf{Ours}\\
+\midrule
+Join request (per UAV) & 104 & 192 ($\Gamma_i\in\G_1$) & 248\\
+Satellite traffic (per UAV) & -- & 192 up + 512 down & \textbf{0}\\
+Key delivery, $n=120$ (all members) & -- & 16.72 MiB & \textbf{8.0 KiB} ($68n+4$)\\
+TUAV beacon (per period) & -- & 172 ($Q_{tu}\in\G_1$) & 204\\
+Rekey after one leave, $n=120$ & -- & 16.3 MiB & 7.9 KiB (flat) \;/\; \textbf{680 B} (LKH)\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[width=0.92\linewidth,height=6.6cm,ymode=log,xlabel={number of UAVs $n$},ylabel={bytes for group-key delivery (log scale)},
+   xmin=10,xmax=120,ymax=1e9,legend style={at={(0.5,-0.22)},anchor=north,legend columns=2},log basis y=10]
+  \addplot[bad,very thick,mark=*] table[x=n,y=crt_total]{\keybytes}; \addlegendentry{Base: CRT coefficients to each of $n$ UAVs (measured)}
+  \addplot[bad,dashed,mark=o] table[x=n,y=crt_per_ack]{\keybytes}; \addlegendentry{Base: one ACK}
+  \addplot[black!45,mark=triangle] table[x=n,y=paper_claim]{\keybytes}; \addlegendentry{Base paper's Table V ($104n$)}
+  \addplot[uavc,very thick,mark=square*] table[x=n,y=ours_total]{\keybytes}; \addlegendentry{Ours: one ACK with $n$ entries ($68n+4$)}
+\end{axis}
+\end{tikzpicture}
+\caption{Group-key delivery traffic. The base scheme grows as $O(n^3)$ bytes; ours grows linearly, and at $n=120$ is about 2150$\times$ smaller.}
+\label{fig:keybytes}
+\end{figure}
+
+\begin{whybox}[title={The trade-off we accept}]
+Our join request is larger (248\,B against 192\,B honest or 104\,B reported) because it carries the public-key material $X_i,Y_i$ (so that no directory or TA is
+needed to verify it) and the ephemeral $E_i$ (forward secrecy). We think this is the right trade: a few hundred extra bytes per UAV to remove the satellite traffic,
+the TA dependence and a key-delivery broadcast that is megabytes in size.
+\end{whybox}
+
+\subsection{Handover}
+\begin{table}[H]
+\centering\small
+\caption{Admission in a new cell: full C1/C2 admission versus a C3 ticket.}
+\label{tab:ho}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+ & Full re-admission & \textbf{C3 handover} & saving\\
+\midrule
+New TUAV computation & 3.6441 ms & \textbf{1.8084 ms} & 50\%\\
+Member computation & 5.4489 ms & \textbf{1.8072 ms} & 67\%\\
+Signature verifications at the new TUAV & 1 & \textbf{0} & --\\
+Bytes on air (member $\leftrightarrow$ new TUAV) & 248 + 68 + beacon & 301 + 92 & comparable\\
+TA involvement & none & none & --\\
+\bottomrule
+\end{tabular}
+\end{table}
+\noindent The bigger benefit is \emph{latency and continuity}. The member does not need to wait for the new TUAV's beacon period, generate a signature or pass a
+verification window, and the eviction state follows it across cells.

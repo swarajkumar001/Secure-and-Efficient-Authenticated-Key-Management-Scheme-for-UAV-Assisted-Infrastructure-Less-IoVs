@@ -1,0 +1,102 @@
+% =====================================================================
+\section{Introduction}\label{sec:intro}
+% =====================================================================
+
+\subsection{The problem in one paragraph}
+In a normal Internet of Vehicles (IoV), roadside units (RSUs) mounted on poles verify every vehicle and relay data to a cloud
+Trusted Authority (TA). After an earthquake or flood the poles, the fibre and the power are the first things to fail. Rescue convoys
+and evacuation traffic then need secure coordination most, and nobody is left to verify anyone. Tan, Zheng and Vijayakumar~\cite{base}
+call this setting the \emph{infrastructure-less IoV}. Their answer is a \emph{tethered UAV} (TUAV), a drone powered by a cable from an
+emergency communications response vehicle (ECRV), which hovers for hours and acts as a flying edge server for a swarm of ordinary UAVs.
+
+\subsection{What the base paper contributes}
+The paper~\cite{base} makes three contributions, which we presented in Phase~1:
+\begin{enumerate}[label=\textbf{(\roman*)}]
+  \item a TUAV-enabled edge architecture that replaces the dead RSU and gives three-dimensional coverage;
+  \item a certificateless \emph{group} authentication of $n$ UAVs at once, with the costly bilinear pairings moved to the TA;
+  \item a group key distributed with the Chinese Remainder Theorem (CRT) and updated cheaply when UAVs join or leave.
+\end{enumerate}
+It reports 151\,ms to authenticate 120 UAVs, 104 bytes per request, and all eleven security properties of its Table~II.
+
+\subsection{What we found}
+We re-derived every equation of Section~IV and re-did the cost and byte accounting of Section~VI. The scheme is elegant, but it
+does not deliver its title property, and several entries in its security table do not hold:
+\begin{itemize}
+  \item \textbf{It still depends on infrastructure.} The TUAV cannot verify anyone by itself. Steps GA1--GA2 send every request over a
+        satellite link to the TA, which computes every pairing. If the link is lost, authentication stops completely (Finding~\ref{f:online}).
+  \item \textbf{The TA can be any UAV.} The credential $\Gamma_i$ depends only on $s_i$, which the TA issued and stores, and on public
+        values. So the TA can forge any UAV (key escrow), and no UAV message is non-repudiable (Finding~\ref{f:escrow}).
+  \item \textbf{Revocation does not revoke.} The published CRT polynomial reveals every member's decrypting key to every other member, so a
+        removed UAV still recovers the new group key (Finding~\ref{f:crt}). We confirmed this with a script.
+  \item \textbf{The numbers leave out the TA's work.} With the TA's pairings counted, group authentication of 120 UAVs costs about 3720\,ms
+        rather than 151\,ms. The key acknowledgements carry about 143\,KiB each, not 104 bytes (Finding~\ref{f:cost}).
+  \item \textbf{The proof of Theorem~1 is empty.} Its CDH ``instance'' has a public exponent, so the reduction proves nothing (Finding~\ref{f:proof}).
+\end{itemize}
+
+\subsection{Our contributions}
+\begin{keybox}
+Keep the TUAV architecture, and make the trust root \emph{offline}. The TA signs credentials before deployment and can trace a
+misbehaving entity afterwards, but no step in the field ever waits for it. Every UAV, vehicle and TUAV can verify every other one
+using only the TA's public key.
+\end{keybox}
+
+\begin{enumerate}[label=\textbf{C\arabic*.},leftmargin=*]
+  \item[\textbf{A.}] \textbf{Analysis of the base scheme}: five findings, each with what fails, where, why and its impact (Section~\ref{sec:findings}).
+  \item[\textbf{C1.}] \textcolor{uavc}{\textbf{Autonomous UAV tier.}} Escrow-free, pairing-free certificateless credentials verified \emph{locally} by the TUAV in a
+        small-exponent batch; a bounded fallback when a batch fails; group keys delivered per member under fresh ECDH keys, so revocation is secure and the
+        traffic is linear in $n$ (Section~\ref{sec:c1}).
+  \item[\textbf{C2.}] \textcolor{vehc}{\textbf{Vehicle tier.}} Vehicles, which the base paper explicitly leaves out, are authenticated under the \emph{same} offline trust root. Their requests
+        are relayed by authenticated UAVs, which also filter floods, and they receive a regional key for V2V traffic (Section~\ref{sec:c2}).
+  \item[\textbf{C3.}] \textcolor{hoc}{\textbf{TUAV-to-TUAV handover.}} Neighbouring TUAVs share a link key. A member moving between cells presents an encrypted ticket and is
+        admitted using symmetric operations plus one ECDH, without a full re-authentication and without the TA (Section~\ref{sec:c3}).
+  \item[\textbf{E.}] \textbf{Security and cost analysis}: theorems with proof sketches, an updated security table, and a cost and byte comparison that
+        uses the base paper's own constants (Sections~\ref{sec:security}--\ref{sec:perf}).
+\end{enumerate}
+
+\subsection{Organisation}
+Section~\ref{sec:base} recalls the base scheme. Section~\ref{sec:findings} presents our findings. Section~\ref{sec:model} gives the system model,
+threat model and design goals. Section~\ref{sec:prelim} introduces the building blocks and notation. Sections~\ref{sec:setup}--\ref{sec:c3} present the
+framework. Section~\ref{sec:security} analyses security, Section~\ref{sec:perf} performance, Section~\ref{sec:discussion} limitations, and
+Section~\ref{sec:plan} the implementation and evaluation plan. Section~\ref{sec:conclusion} concludes.
+
+% =====================================================================
+\section{The Base Scheme in Brief}\label{sec:base}
+% =====================================================================
+This section uses the base paper's notation. Figure~\ref{fig:base} shows the message flow we presented in Phase~1.
+
+\begin{figure}[H]
+\centering
+\resizebox{0.97\linewidth}{!}{%
+\begin{tikzpicture}[node distance=1cm]
+  \node[ent=deep]  (ta)   at (0,0)   {TA (cloud)};
+  \node[ent=hoc]   (tu)   at (6,0)   {TUAV};
+  \node[ent=uavc]  (uav)  at (12,0)  {$n$ UAVs};
+  \foreach \n in {ta,tu,uav}{ \draw[life] (\n.south) -- ++(0,-8.2); }
+  \draw[msg=deep,dashed] (0,-1.0) -- node[lbl,above]{IS1 $\langle id_{tu},s_{tu}\rangle$ (offline)} (6,-1.0);
+  \draw[msg=deep,dashed] (0,-1.7) -- node[lbl,above,pos=0.75]{IS2 $\langle id_i,s_i\rangle$ to each UAV (offline)} (12,-1.7);
+  \draw[msg=hoc] (6,-2.4) -- node[lbl,above]{IS5 $\langle ts_{tu},ID_{tu},R_{tu},Q_{tu}\rangle$ broadcast} (12,-2.4);
+  \draw[msg=uavc] (12,-3.2) -- node[lbl,above]{US3 $\langle Request,ts_2,ID_i,\xi_i,\upsilon_i,\Gamma_i\rangle\times n$} (6,-3.2);
+  \draw[msg=bad,very thick] (6,-4.0) -- node[lbl,above]{GA1 upload (satellite)} (0,-4.0);
+  \node[act=deep,anchor=east] at (-0.2,-4.75) {GA2: map $ID_i\!\to\! id_i$,\\ $3n$ pairings};
+  \draw[msg=bad,very thick] (0,-5.5) -- node[lbl,above]{GA2 $\langle\sigma_i,\psi_i,\mu_i,\delta_i\rangle$ (satellite)} (6,-5.5);
+  \node[act=hoc] at (6,-6.25) {GA3: one product equation};
+  \draw[msg=hoc] (6,-7.0) -- node[lbl,above]{GD4 $\langle ACK,ts_3,ID_i,S_i,\{a_k\}_{k=0}^{n}\rangle$ to each} (12,-7.0);
+  \node[act=uavc,anchor=west] at (12.2,-7.7) {GD5--6: check $S_i$,\\ $\kappa_{tu}=\Lambda(\sigma_i)\bmod\sigma_i$};
+  \draw[bad,thick,decorate,decoration={brace,amplitude=5pt}] (-0.1,-3.75) -- (-0.1,-5.75);
+\end{tikzpicture}}
+\caption{Base scheme~\cite{base}. Red arrows cross the satellite link. GA3 cannot run until GA2 returns.}
+\label{fig:base}
+\end{figure}
+
+\noindent The equations we use later (verbatim from~\cite{base}, Section~IV):
+\begin{align}
+  &\text{IS4:} && ID_{tu}=h_2(id_{tu},r_{tu}),\quad R_{tu}=r_{tu}\,h_2(ts_{tu},s_{tu})\in\mathbb{Z}_q,\quad Q_{tu}=s_{tu}\,h_2(ID_{tu},r_{tu})\,P \label{eq:is4}\\
+  &\text{US1:} && \xi_i=h_1(r_i),\qquad ID_i=h_3(id_i,ts_2,\xi_i)\\
+  &\text{US2:} && \upsilon_i=h_4(ID_i,ID_{tu},ts_2,\xi_i),\qquad
+     \Gamma_i=\big[s_i\,h_3(ID_i,ts_2,s_i)\,R_{tu}-h_1(s_i\xi_i)\big]P-\upsilon_i\,h_1(r_i)\,Q_{tu} \label{eq:gamma}\\
+  &\text{GA2:} && \sigma_i=h_1(s_i\xi_i)P,\ \ \psi_i=\hat e(\Gamma_i+\sigma_i,P),\ \ \mu_i=\hat e(h_3(ID_i,ts_2,s_i)P,s_iP),\ \ \delta_i=\hat e(s_{tu}P,\upsilon_i\xi_iP)\\
+  &\text{GA3:} && \textstyle\prod_{i}\psi_i\,\big(\prod_i\delta_i\big)^{h_2(ID_{tu},r_{tu})}\overset{?}{=}\prod_i\mu_i^{R_{tu}}\label{eq:ga3}\\
+  &\text{GD1--2:} && \omega_i=\textstyle\prod_{j\ne i}\sigma_j,\ \ \varphi_i\equiv\omega_i^{-1}\bmod\sigma_i,\ \
+     \Lambda(x)=\kappa_{tu}\sum_{i=1}^{n}\omega_i\varphi_i+\prod_{i=1}^{n}(x-\sigma_i)=\sum_{k=0}^{n}a_kx^k \label{eq:lambda}\\
+  &\text{GD6:} && \kappa_{tu}=\Lambda(\sigma_i)\bmod\sigma_i
+\end{align}

@@ -1,0 +1,138 @@
+% =====================================================================
+\section{System Model, Threat Model and Design Goals}\label{sec:model}
+% =====================================================================
+
+\subsection{System model}
+We keep the base paper's scenario: RSUs are destroyed, and an ECRV with its TUAV is deployed. We extend it in two directions: vehicles become
+first-class participants, and \emph{several} TUAVs cover neighbouring cells (Figure~\ref{fig:arch}).
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[font=\sffamily\small,scale=0.95,transform shape]
+  % tiers
+  \node[tier=deep,minimum width=15.6cm,minimum height=1.5cm] (t0) at (0,4.3) {};
+  \node[anchor=north west,font=\sffamily\scriptsize\bfseries,text=deep] at (t0.north west) {OFFLINE TRUST ROOT};
+  \node[ent=deep,minimum width=4cm] (ta) at (0,4.2) {TA \;--\; registration \& tracing};
+  \node[draw=deep,fill=white,rounded corners,font=\scriptsize\sffamily,align=center] at (5.6,4.2) {publishes $\Ppub,\Tpub$\\ before deployment};
+  \node[draw=bad,fill=white,rounded corners,font=\scriptsize\sffamily,align=center,text=bad] at (-5.6,4.2) {no online link\\ required};
+
+  \node[tier=hoc,minimum width=15.6cm,minimum height=1.6cm] (t3) at (0,2.0) {};
+  \node[anchor=north west,font=\sffamily\scriptsize\bfseries,text=hoc] at (t3.north west) {C3 -- TUAV TIER};
+  \node[ent=hoc] (ta1) at (-3.6,1.9) {TUAV $\Ta$ + ECRV};
+  \node[ent=hoc] (tb1) at (3.6,1.9) {TUAV $\Tb$ + ECRV};
+  \draw[{Stealth}-{Stealth},very thick,hoc] (ta1) -- node[lbl,above]{link key $K_{ab}$, tickets, eviction lists} (tb1);
+
+  \node[tier=uavc,minimum width=15.6cm,minimum height=1.7cm] (t1) at (0,-0.35) {};
+  \node[anchor=north west,font=\sffamily\scriptsize\bfseries,text=uavc] at (t1.north west) {C1 -- UAV TIER};
+  \foreach \x/\l in {-6/1,-3.9/2,-1.8/3}{ \node[ent=uavc,minimum width=1.5cm] (u\l) at (\x,-0.45) {$\U_{\l}$}; }
+  \foreach \x/\l in {1.8/4,3.9/5,6/6}{ \node[ent=uavc,minimum width=1.5cm] (u\l) at (\x,-0.45) {$\U_{\l}$}; }
+  \foreach \l in {1,2,3}{ \draw[uavc,thick] (ta1) -- (u\l); }
+  \foreach \l in {4,5,6}{ \draw[uavc,thick] (tb1) -- (u\l); }
+  \draw[-{Stealth},thick,hoc,dashed] (u3) to[bend right=25] node[lbl,below]{handover} (u4);
+
+  \node[tier=vehc,minimum width=15.6cm,minimum height=1.6cm] (t2) at (0,-2.65) {};
+  \node[anchor=north west,font=\sffamily\scriptsize\bfseries,text=vehc] at (t2.north west) {C2 -- VEHICLE TIER};
+  \foreach \x/\l in {-6.2/1,-4.4/2,-2.6/3,-0.8/4,1.0/5,2.8/6,4.6/7,6.4/8}{ \node[ent=vehc,minimum width=1.2cm,minimum height=0.7cm] (v\l) at (\x,-2.75) {$\V_{\l}$}; }
+  \draw[vehc,thick] (u1) -- (v1); \draw[vehc,thick] (u2) -- (v2); \draw[vehc,thick] (u2) -- (v3);
+  \draw[vehc,thick] (u3) -- (v4); \draw[vehc,thick] (u4) -- (v5); \draw[vehc,thick] (u5) -- (v6); \draw[vehc,thick] (u6) -- (v7); \draw[vehc,thick] (u6) -- (v8);
+  \draw[{Stealth}-{Stealth},vehc,dashed] (v2) to[bend right=30] node[lbl,below]{V2V} (v3);
+\end{tikzpicture}
+\caption{The three-tier framework. The TA (top) acts only before deployment and for later tracing; all field operations (C1--C3) run without it.}
+\label{fig:arch}
+\end{figure}
+
+\begin{itemize}
+  \item \textbf{\textcolor{deep}{Trusted Authority $\TA$}}: generates system parameters, registers every entity \emph{before} deployment, and can
+        later trace a pseudonym to a real identity. It is \emph{not} assumed reachable during operation.
+  \item \textbf{\textcolor{hoc}{TUAV $\Ta$}}: the cell controller (powered by its ECRV). It verifies UAVs and vehicles, distributes keys, and talks to
+        neighbouring TUAVs. TUAVs have fixed public identities $\ID_a$; they are infrastructure, not users, so they need no anonymity.
+  \item \textbf{\textcolor{uavc}{UAVs $\U_i$}}: battery-powered and resource-limited. They form the aerial relay layer.
+  \item \textbf{\textcolor{vehc}{Vehicles $\V_j$}}: hold the same kind of credential as UAVs, reach a TUAV through a UAV or directly, and communicate V2V.
+\end{itemize}
+
+\subsection{Threat model}
+\begin{itemize}
+  \item \textbf{Network adversary} (Dolev--Yao~\cite{dolevyao}): reads, drops, replays, modifies and injects messages on every wireless link.
+  \item \textbf{Type-I adversary}~\cite{alriyami}: an outsider who may \emph{replace} any entity's public key but does not know the TA master key $s$.
+  \item \textbf{Type-II adversary}: an honest-but-curious (or breached) TA that knows $s$ and all partial keys but not an entity's secret value $x$.
+        This is the adversary under which the base scheme fails (Finding~\ref{f:escrow}).
+  \item \textbf{Insiders}: compromised or revoked UAVs and vehicles that know their own keys and every group key they ever legitimately received.
+  \item \textbf{Batch poisoner}: injects requests with invalid signatures so that batches fail (denial of service).
+\end{itemize}
+\textbf{Trust assumptions.} TUAVs are trusted to run the protocol honestly; a \emph{captured} TUAV is discussed as a limitation
+(Section~\ref{sec:discussion}). Clocks are loosely synchronised (GNSS) for timestamp checks. Hash functions are modelled as random oracles.
+
+\subsection{Design goals}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}X l@{}}
+\toprule
+Goal & Meaning & Fixes\\
+\midrule
+G1 Authority independence & No field operation (C1--C3) waits for the TA & Finding 1\\
+G2 Escrow-freeness & The TA cannot sign for, or derive the keys of, any registered entity & Finding 2\\
+G3 Unforgeability \& non-repudiation & Publicly verifiable signatures under ECDLP, with a valid proof sketch & Findings 2, 5\\
+G4 Conditional privacy & Pseudonyms that cannot be linked across epochs; only the TA can trace them, offline & (kept)\\
+G5 Key secrecy & Forward secrecy against long-term key loss; leavers cannot read new keys, joiners cannot read old ones & Findings 3, 4\\
+G6 Robust batching & Sound batch test; bounded cost when a batch fails & Finding 5\\
+G7 Coverage & Vehicles included; seamless handover between TUAVs & new\\
+G8 Efficiency & Comparable cost to the base scheme under the same constants, linear traffic & Finding 6\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% =====================================================================
+\section{Preliminaries and Notation}\label{sec:prelim}
+% =====================================================================
+\paragraph{Elliptic-curve group.} $\G$ is a cyclic group of prime order $q$ on an elliptic curve with generator $P$. We need no pairing.
+\begin{definition}[ECDLP]
+Given $(P,aP)$ with $a\in\Zq$, computing $a$ is infeasible for any probabilistic polynomial-time (PPT) algorithm.
+\end{definition}
+\begin{definition}[CDH]
+Given $(P,aP,bP)$, computing $abP$ is infeasible for any PPT algorithm.
+\end{definition}
+
+\paragraph{Schnorr-type signature.} A signer with key $z$ and public key $Z=zP$ picks $r$, sets $R=rP$, $c=H(m,R,\dots)$, $v=r+cz$; the verifier checks
+$vP=R+cZ$. Unforgeability reduces to ECDLP in the random-oracle model via the forking lemma~\cite{schnorr,forking}.
+
+\paragraph{Certificateless keys~\cite{alriyami}.} A full private key combines a KGC-issued \emph{partial key} with a \emph{secret value} chosen by the user,
+so neither the KGC alone nor a key-replacing outsider can sign. Pairing-free certificateless signatures of this kind are well studied; ECLAS~\cite{eclas}
+(reference~[34] of the base paper) is one example.
+
+\paragraph{Small-exponent batch test~\cite{bgr}.} To check $n$ equations $v_iP=R_i+c_i\pk_i$ at once, the verifier draws random
+$\lambda_i\in[1,2^{\ell_\lambda}]$ and checks one weighted sum. An invalid batch passes with probability at most $2^{-\ell_\lambda}$.
+
+\paragraph{Symmetric tools.} $\KDF$ is HKDF~\cite{hkdf}; $(\Enc,\Dec)$ is an authenticated encryption scheme with associated data (AES-128-GCM~\cite{gcm});
+$\MAC$ is HMAC-SHA-256. $\Enc(K,m;\,\mathit{AD})$ encrypts $m$ and authenticates both $m$ and the associated data $\mathit{AD}$.
+
+\begin{table}[H]
+\centering\small
+\caption{Notation of the proposed framework (our symbols).}
+\label{tab:notation}
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}X@{}}
+\toprule
+Symbol & Meaning\\
+\midrule
+$\TA,\ \Ta,\ \U_i,\ \V_j,\ \Ent,\ \M$ & Trusted Authority; TUAV of cell $a$; UAV $i$; vehicle $j$; any entity; a moving member\\
+$\G,\ q,\ P$ & elliptic-curve group, its prime order, generator\\
+$s,\ \Ppub=sP$ & TA master key (signs partial keys) and its public key\\
+$t,\ \Tpub=tP$ & TA tracing key (opens pseudonyms) and its public key\\
+$\RID_\Ent$ & real identity of entity $\Ent$ (never transmitted)\\
+$\ep,\ \PID_\Ent=(\PID^1_\Ent,\PID^2_\Ent)$ & epoch index; pseudonym of $\Ent$ valid only in epoch $\ep$\\
+$x_\Ent,\ X_\Ent=x_\Ent P$ & secret value chosen by $\Ent$ (TA never sees $x_\Ent$) and its public part\\
+$y_\Ent,\ Y_\Ent,\ d_\Ent$ & TA nonce, its public part $Y_\Ent=y_\Ent P$, and the partial private key\\
+$h_\Ent=\Ho(\PID_\Ent,\ep,X_\Ent,Y_\Ent)$ & binding hash of the credential\\
+$\sk_\Ent=x_\Ent+d_\Ent,\ \pk_\Ent=X_\Ent+Y_\Ent+h_\Ent\Ppub$ & full private key; full public key ($\sk_\Ent P=\pk_\Ent$)\\
+$(R,v)$, $c$ & signature, $R=rP$, $v=r+c\,\sk$; challenge $c=\Ht(\cdot)$\\
+$\lambda_i,\ \ell_\lambda$ & random batch weights, $\lambda_i\in[1,2^{\ell_\lambda}]$, $\ell_\lambda=64$\\
+$e_\Ent,\ E_\Ent=e_\Ent P$ & ephemeral Diffie--Hellman secret and public value (erased after use)\\
+$K_i$ & pairwise key between $\Ta$ and member $i$\\
+$\GK_a,\ \VK_a,\ \nu$ & UAV group key, vehicle regional key of cell $a$, key version\\
+$K_{ab}$ & link key between neighbouring TUAVs $\Ta,\Tb$\\
+$\Tk_\M,\ \hk_\M,\ N_\M,\ \mathit{exp}$ & handover ticket, handover key, ticket nonce, ticket expiry\\
+$\ts,\ \Delta t$ & timestamp, acceptance window\\
+$\mathcal{L}$ & eviction/revocation list (hashes of banned pseudonyms)\\
+$\Hz:\G\times\{0,1\}^*\!\to\!\{0,1\}^{|\RID|}$, $\Ho,\Ht:\{0,1\}^*\!\to\!\Zq$, $\Hd$ & hash functions ($\Hd$: SHA-256, used for list indices)\\
+$\cat$ & concatenation\\
+\bottomrule
+\end{tabularx}
+\end{table}
