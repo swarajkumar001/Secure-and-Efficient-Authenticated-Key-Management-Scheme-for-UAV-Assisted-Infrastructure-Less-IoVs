@@ -1,0 +1,108 @@
+{
+  "machine": {
+    "python": "3.14.0",
+    "cpu": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+    "os": "Windows-11-10.0.26200-SP0"
+  },
+  "E0": {
+    "G1 scalar multiplication": 6.8657,
+    "G1 small (64-bit) multiplication": 1.3922,
+    "G1 point addition": 0.0199,
+    "G2 scalar multiplication": 31.0114,
+    "bilinear pairing": 1403.2725,
+    "GT exponentiation": 88.5351,
+    "SHA-256 hash": 0.0043,
+    "HKDF-SHA256": 0.0318,
+    "AES-128-GCM seal (20 B)": 0.017
+  },
+  "E2": {
+    "n": 120,
+    "ours_total_ms": 7742.7,
+    "base_total_ms": 1047114.4,
+    "base_TUAV_only_ms": 246.4,
+    "speedup": 135.2
+  },
+  "E1": {
+    "rounds_per_point": 20000,
+    "base_at_A0": 0.0,
+    "ours_at_A0": 100.0
+  },
+  "E3": {
+    "n": 60,
+    "clean_ms": 1999.6,
+    "worst_fallback_ms": 6995.2,
+    "base_batch_with_one_bad_accepted": false
+  },
+  "E4": {
+    "n": 120,
+    "per_request_base_B": 137,
+    "per_request_ours_B": 225,
+    "base_key_traffic_B": 17548200,
+    "ours_key_traffic_B": 9628,
+    "base_satellite_B": 158640,
+    "ratio": 1823
+  },
+  "E5": {
+    "vehicles": 500,
+    "batch_ms": 29617.3,
+    "individual_ms": 39161.7,
+    "drop_ms": 0.015
+  },
+  "E6": {
+    "tuav_full_ms": 105.04,
+    "tuav_ticket_ms": 52.28,
+    "member_full_ms": 150.77,
+    "member_ticket_ms": 50.68,
+    "crossings_per_hour": 557,
+    "gap_full_ms": 755.8,
+    "gap_ticket_ms": 103.0
+  },
+  "E7": [
+    {
+      "scheme": "base",
+      "attack": "TA forges a UAV request (Finding 2)",
+      "succeeds": true
+    },
+    {
+      "scheme": "base",
+      "attack": "cancelling errors pass the batch (Finding 5)",
+      "succeeds": true
+    },
+    {
+      "scheme": "base",
+      "attack": "revoked UAV recovers the new group key (Finding 4)",
+      "succeeds": true
+    },
+    {
+      "scheme": "base",
+      "attack": "one bad request -> honest UAVs still admitted",
+      "succeeds": false
+    },
+    {
+      "scheme": "ours",
+      "attack": "TA forges a member signature (knows d, not x)",
+      "succeeds": false
+    },
+    {
+      "scheme": "ours",
+      "attack": "cancelling errors pass the batch",
+      "succeeds": false
+    },
+    {
+      "scheme": "ours",
+      "attack": "revoked UAV recovers the new group key",
+      "succeeds": false
+    },
+    {
+      "scheme": "ours",
+      "attack": "one bad request -> honest UAVs still admitted",
+      "succeeds": true
+    },
+    {
+      "scheme": "ours",
+      "attack": "replayed request accepted under a new beacon",
+      "succeeds": false
+    }
+  ],
+  "runtime_s": 2011.7
+}

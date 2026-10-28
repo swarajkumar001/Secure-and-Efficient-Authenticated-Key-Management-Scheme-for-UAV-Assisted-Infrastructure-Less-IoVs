@@ -1,0 +1,33 @@
+% =====================================================================
+\chapter{Reproducing the Results}\label{app:repro}
+% =====================================================================
+All commands run from the folder \texttt{final/}.
+\begin{lstlisting}[language=bash]
+python -m pip install py_ecc cryptography sympy matplotlib pytest
+python -m pytest -q                              # 20 tests
+python experiments/run_all.py                    # E0-E7 -> results/*.csv, results/summary.json
+python experiments/run_all.py --only=e2,e3       # re-run selected experiments
+python experiments/make_figures.py               # figures/*.pdf, *.png
+cd proverif && ../tools/proverif2.05/proverif.exe -lib common c1_typeI.pv
+cd report  && pdflatex final_report && pdflatex final_report
+\end{lstlisting}
+The analytical numbers of Chapter~\ref{sec:perf} come from \texttt{phase2/scripts/compute\_results.py}. ProVerif~2.05 for Windows is the official binary
+distribution (\texttt{proverifbin2.05.tar.gz}).
+
+% =====================================================================
+\chapter{ProVerif Models}\label{app:pv}
+% =====================================================================
+\section{Shared library}
+\lstinputlisting[language=pv]{../proverif/common.pvl}
+\section{C1 against an outsider (Type I)}
+\lstinputlisting[language=pv]{../proverif/c1_typeI.pv}
+\section{C1 against a malicious TA (Type II)}
+\lstinputlisting[language=pv]{../proverif/c1_typeII.pv}
+\section{Rekeying}
+\lstinputlisting[language=pv]{../proverif/c1_revocation.pv}
+\section{C3 handover}
+\lstinputlisting[language=pv]{../proverif/c3_handover.pv}
+\section{The base scheme's credential}
+\lstinputlisting[language=pv]{../proverif/base_escrow.pv}
+\section{Raw results}
+\lstinputlisting{../proverif/RESULTS.txt}

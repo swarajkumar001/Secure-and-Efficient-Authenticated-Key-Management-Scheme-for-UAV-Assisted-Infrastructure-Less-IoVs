@@ -1,0 +1,41 @@
+% =====================================================================
+\chapter{The Base Scheme in Brief}\label{sec:base}
+% =====================================================================
+This section uses the base paper's notation. Figure~\ref{fig:base} shows the message flow we presented in Phase~1.
+
+\begin{figure}[H]
+\centering
+\resizebox{0.97\linewidth}{!}{%
+\begin{tikzpicture}[node distance=1cm]
+  \node[ent=deep]  (ta)   at (0,0)   {TA (cloud)};
+  \node[ent=hoc]   (tu)   at (6,0)   {TUAV};
+  \node[ent=uavc]  (uav)  at (12,0)  {$n$ UAVs};
+  \foreach \n in {ta,tu,uav}{ \draw[life] (\n.south) -- ++(0,-8.2); }
+  \draw[msg=deep,dashed] (0,-1.0) -- node[lbl,above]{IS1 $\langle id_{tu},s_{tu}\rangle$ (offline)} (6,-1.0);
+  \draw[msg=deep,dashed] (0,-1.7) -- node[lbl,above,pos=0.75]{IS2 $\langle id_i,s_i\rangle$ to each UAV (offline)} (12,-1.7);
+  \draw[msg=hoc] (6,-2.4) -- node[lbl,above]{IS5 $\langle ts_{tu},ID_{tu},R_{tu},Q_{tu}\rangle$ broadcast} (12,-2.4);
+  \draw[msg=uavc] (12,-3.2) -- node[lbl,above]{US3 $\langle Request,ts_2,ID_i,\xi_i,\upsilon_i,\Gamma_i\rangle\times n$} (6,-3.2);
+  \draw[msg=bad,very thick] (6,-4.0) -- node[lbl,above]{GA1 upload (satellite)} (0,-4.0);
+  \node[act=deep,anchor=east] at (-0.2,-4.75) {GA2: map $ID_i\!\to\! id_i$,\\ $3n$ pairings};
+  \draw[msg=bad,very thick] (0,-5.5) -- node[lbl,above]{GA2 $\langle\sigma_i,\psi_i,\mu_i,\delta_i\rangle$ (satellite)} (6,-5.5);
+  \node[act=hoc] at (6,-6.25) {GA3: one product equation};
+  \draw[msg=hoc] (6,-7.0) -- node[lbl,above]{GD4 $\langle ACK,ts_3,ID_i,S_i,\{a_k\}_{k=0}^{n}\rangle$ to each} (12,-7.0);
+  \node[act=uavc,anchor=west] at (12.2,-7.7) {GD5--6: check $S_i$,\\ $\kappa_{tu}=\Lambda(\sigma_i)\bmod\sigma_i$};
+  \draw[bad,thick,decorate,decoration={brace,amplitude=5pt}] (-0.1,-3.75) -- (-0.1,-5.75);
+\end{tikzpicture}}
+\caption{Base scheme~\cite{base}. Red arrows cross the satellite link. GA3 cannot run until GA2 returns.}
+\label{fig:base}
+\end{figure}
+
+\noindent The equations we use later (verbatim from~\cite{base}, Section~IV):
+\begin{align}
+  &\text{IS4:} && ID_{tu}=h_2(id_{tu},r_{tu}),\quad R_{tu}=r_{tu}\,h_2(ts_{tu},s_{tu})\in\mathbb{Z}_q,\quad Q_{tu}=s_{tu}\,h_2(ID_{tu},r_{tu})\,P \label{eq:is4}\\
+  &\text{US1:} && \xi_i=h_1(r_i),\qquad ID_i=h_3(id_i,ts_2,\xi_i)\\
+  &\text{US2:} && \upsilon_i=h_4(ID_i,ID_{tu},ts_2,\xi_i),\qquad
+     \Gamma_i=\big[s_i\,h_3(ID_i,ts_2,s_i)\,R_{tu}-h_1(s_i\xi_i)\big]P-\upsilon_i\,h_1(r_i)\,Q_{tu} \label{eq:gamma}\\
+  &\text{GA2:} && \sigma_i=h_1(s_i\xi_i)P,\ \ \psi_i=\hat e(\Gamma_i+\sigma_i,P),\ \ \mu_i=\hat e(h_3(ID_i,ts_2,s_i)P,s_iP),\ \ \delta_i=\hat e(s_{tu}P,\upsilon_i\xi_iP)\\
+  &\text{GA3:} && \textstyle\prod_{i}\psi_i\,\big(\prod_i\delta_i\big)^{h_2(ID_{tu},r_{tu})}\overset{?}{=}\prod_i\mu_i^{R_{tu}}\label{eq:ga3}\\
+  &\text{GD1--2:} && \omega_i=\textstyle\prod_{j\ne i}\sigma_j,\ \ \varphi_i\equiv\omega_i^{-1}\bmod\sigma_i,\ \
+     \Lambda(x)=\kappa_{tu}\sum_{i=1}^{n}\omega_i\varphi_i+\prod_{i=1}^{n}(x-\sigma_i)=\sum_{k=0}^{n}a_kx^k \label{eq:lambda}\\
+  &\text{GD6:} && \kappa_{tu}=\Lambda(\sigma_i)\bmod\sigma_i
+\end{align}

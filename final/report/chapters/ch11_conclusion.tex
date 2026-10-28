@@ -1,0 +1,66 @@
+% =====================================================================
+\chapter{Discussion, Limitations and Conclusion}\label{ch:conclusion}
+% =====================================================================
+
+\section{What the evidence supports}
+\begin{keybox}[title={Our claim, stated precisely}]
+The published scheme does not achieve infrastructure independence, escrow resilience, non-repudiation, forward secrecy or secure revocation, and its reported
+costs omit the dominant work. These properties can be recovered \emph{together}, using established primitives, with lower total computation and linear
+communication. The same offline trust root then extends to vehicles and to multi-TUAV handover. We do not claim new cryptographic primitives.
+\end{keybox}
+Each part of this claim rests on two independent kinds of evidence:
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X l l@{}}
+\toprule
+Claim & First evidence & Second evidence\\
+\midrule
+Base scheme needs the TA online & protocol inspection & availability model (E1)\\
+TA impersonates base-scheme UAVs & code (E7) & ProVerif Q16\\
+Revoked UAV keeps the key (base) & code (E7, test) & algebraic proof (Lemma~\ref{lem:leak})\\
+Our TA cannot sign under registered keys & code (test) & ProVerif Q6, Theorem~\ref{thm:escrow}\\
+Our revocation locks leavers out & code (E7, test) & ProVerif Q11\\
+Ours is cheaper overall & measured (E2) & analytical (Chapter~\ref{sec:perf})\\
+Bounded behaviour under poisoning & measured (E3) & Proposition~\ref{prop:dos}\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{Limitations}
+\begin{enumerate}[label=\textbf{L\arabic*.},leftmargin=*]
+  \item \textbf{Key replacement by a malicious TA} (Girault level~2). The TA cannot sign under a registered key, but it can issue a second key for a pseudonym or enrol a
+        phantom member (ProVerif Q7, Q9). This is inherent to certificateless cryptography. It is detectable, and a manufacturer-certified device key would
+        remove it.
+  \item \textbf{Captured TUAV.} With the TA offline, the TUAV is the most trusted field entity. A captured TUAV learns its cell's group and pairwise keys and
+        its link keys until it is evicted. It cannot forge members or learn their secret values. Threshold admission across TUAVs is future work.
+  \item \textbf{Linkability within an epoch} is the price of effective local eviction; the epoch length tunes it.
+  \item \textbf{Pseudonym pool.} Each epoch credential takes about 184 bytes; 288 epochs (three days of 15-minute epochs) take about 53\,KB and must be loaded before deployment.
+  \item \textbf{Deferred global revocation} needs the TA to be reachable at some point; local eviction covers the gap until the epoch ends.
+  \item \textbf{Larger join request} than the paper reports (225\,B versus 137\,B under our encoding; 248\,B versus 104\,B under the paper's), because ours
+        carries $X$, $Y$ and an ephemeral $E$.
+  \item \textbf{Measurement platform.} Timings come from a pure-Python library on a laptop whose speed varied during the runs. We therefore report ratios measured
+        back to back and cross-check them with operation counts (Chapter~\ref{ch:eval}). The absolute values are not those of an optimised C implementation.
+  \item \textbf{Models.} Network behaviour (link losses, mobility) is simulated with simple stochastic models rather than a radio simulator. The ProVerif
+        results are symbolic, and the reductions are proof sketches.
+  \item \textbf{Vehicle routine beacons} protected by the shared $\VK_a$ can be forged by any vehicle holding it; events that matter are signed.
+\end{enumerate}
+
+\section{Conclusion}
+The base paper addresses a real problem, secure vehicular networking after a disaster has destroyed the roadside infrastructure, and its TUAV
+architecture is a good answer. Its protocol, however, places the cloud TA inside every operation. We showed, through analysis, code and formal verification,
+that this makes authentication stop when the satellite link fails, lets the TA impersonate every UAV, lets a revoked UAV keep receiving group keys, and hides
+the dominant cost.
+
+\emph{Cutting the Cord} keeps the architecture and moves the trust root offline. Escrow-free certificateless credentials let a TUAV verify UAVs and
+vehicles itself, in a sound batch with a bounded fallback. Per-member ECDH keys make group-key delivery linear, forward-secure and revocation-safe.
+Encrypted single-use tickets hand members between TUAVs without the TA. ProVerif verifies the intended properties and pins down the one residual TA power.
+On the same curve and library, our TUAV authenticates and keys a swarm one to two orders of magnitude faster than the base scheme's TA-inclusive cost,
+with no satellite traffic and kilobytes instead of megabytes of key traffic.
+
+\section{Future work}
+\begin{itemize}
+  \item Threshold trust across TUAVs, so that one captured TUAV cannot admit members alone.
+  \item Level-3 trust: bind each RG1 record to a manufacturer-certified device key.
+  \item A constant-time implementation on a 128-bit curve, measured on embedded UAV hardware.
+  \item Integration with a radio and mobility simulator (for example ns-3) and a field trial with a tethered drone.
+  \item Post-quantum credentials (lattice-based signatures) for long-lived deployments.
+\end{itemize}

@@ -1,0 +1,36 @@
+(* The base scheme's credential (Step US2), abstracted symbolically.
+   Gamma_i = gam(s_i, ID_i, xi_i, upsilon_i, R_tu, Q_tu): every argument except s_i is public
+   (xi_i = h1(r_i) is sent in clear), and the TA stores s_i.
+   Scenario: the TA is honest-but-curious or breached, i.e. the attacker learns s_i.
+   Expected: ProVerif finds an attack on authentication (Finding 2: key escrow, no non-repudiation).
+   Run:  proverif base_escrow.pv *)
+
+free c: channel.
+free si: bitstring [private].
+free idU: bitstring.
+
+fun h(bitstring): bitstring.
+fun gam(bitstring, bitstring, bitstring, bitstring): bitstring.
+
+event uavSent(bitstring, bitstring).
+event tuavAccepts(bitstring, bitstring).
+
+query xi: bitstring; event(tuavAccepts(idU, xi)) ==> event(uavSent(idU, xi)).
+
+let UAV =
+  in(c, (rtu: bitstring, qtu: bitstring));
+  new r: bitstring;
+  let xi = h(r) in
+  event uavSent(idU, xi);
+  out(c, (idU, xi, gam(si, xi, rtu, qtu))).
+
+(* GA1-GA4: the TUAV + TA accept iff Gamma matches what s_i determines *)
+let Verifier =
+  new rtu: bitstring; new qtu: bitstring;
+  out(c, (rtu, qtu));
+  in(c, (=idU, xi: bitstring, G: bitstring));
+  if G = gam(si, xi, rtu, qtu) then
+  event tuavAccepts(idU, xi).
+
+process
+  (!UAV) | (!Verifier) | out(c, si)      (* the TA's database leaks s_i *)

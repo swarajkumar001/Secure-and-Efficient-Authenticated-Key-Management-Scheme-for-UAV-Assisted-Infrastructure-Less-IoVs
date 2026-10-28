@@ -1,0 +1,23 @@
+(* RK1: rekeying after a member is removed.
+   Member 1 is revoked and fully compromised (its pairwise key K1 is given to the attacker).
+   Expected: the old key gk1 is known (it was a member), the new key gk2 is not.
+   Run:  proverif -lib common c1_revocation.pv *)
+
+free K1: key [private].
+free K2: key [private].
+free K3: key [private].
+free gk1: bitstring [private].
+free gk2: bitstring [private].
+free v1: bitstring.
+free v2: bitstring.
+
+query attacker(gk1).                     (* expected TRUE (sanity check of the model) *)
+query attacker(gk2).                     (* expected FALSE: revocation works *)
+
+process
+  (* version 1: three members *)
+  out(c, (senc((gk1, v1), K1), senc((gk1, v1), K2), senc((gk1, v1), K3)));
+  (* member 1 is revoked and compromised *)
+  out(c, K1);
+  (* RK1: fresh key for the members that stay *)
+  out(c, (senc((gk2, v2), K2), senc((gk2, v2), K3)))

@@ -1,0 +1,67 @@
+% =====================================================================
+\chapter{Background and Related Work}\label{ch:background}
+% =====================================================================
+
+\section{Authentication in the Internet of Vehicles}
+IoV authentication schemes protect vehicle-to-infrastructure (V2I) and vehicle-to-vehicle (V2V) messages sent over open radio channels. Most of them
+share three design patterns. (i) A \emph{trusted authority} registers vehicles and can trace a pseudonym back to a real identity
+(\emph{conditional privacy}). (ii) \emph{Roadside units} verify messages locally. (iii) \emph{Batch verification} checks many signatures at once.
+The four schemes the base paper compares against are representative: Mei~\textit{et al.}~\cite{mei}, Kumar~\textit{et al.}~\cite{kumar},
+Ali~\textit{et al.}~\cite{ali} and Xu~\textit{et al.}~\cite{xu} are certificateless (aggregate) signature schemes for VANETs. All of them assume a working
+RSU or an online authority. The base paper~\cite{base} is the first to assume neither RSUs \emph{nor} terrestrial backhaul. As we show, however, it still
+assumes an online authority reached by satellite.
+
+\section{Certificateless public-key cryptography}
+Identity-based cryptography removes certificates but gives the key generation centre (KGC) every private key (\emph{key escrow}). Certificateless
+cryptography~\cite{alriyami} splits the private key: the KGC issues a \emph{partial} key bound to the identity, and the user adds a \emph{secret value}
+the KGC never sees. Two adversaries are standard. A \emph{Type-I} outsider may replace public keys but does not know the master key. A \emph{Type-II}
+malicious KGC knows the master key but may not replace public keys. Girault's trust levels~\cite{girault} make the residual trust precise. At
+\emph{level~1} the authority knows users' secret keys and can impersonate them undetectably. At \emph{level~2} it does not know them, but it can still
+impersonate a user by issuing a \emph{second} public key, and the two coexisting keys expose the cheating. At \emph{level~3} even that is impossible.
+Certificateless schemes reach level~2. This distinction matters in Chapter~\ref{ch:pv}: the base scheme is at level~1 (Finding~\ref{f:escrow}); ours is at
+level~2, and ProVerif confirms exactly that boundary. Pairing-free certificateless signatures such as ECLAS~\cite{eclas} avoid bilinear pairings entirely
+and verify with a few elliptic-curve scalar multiplications.
+
+\section{Batch verification and its failure modes}
+Bellare, Garay and Rabin~\cite{bgr} showed that checking a product (or sum) of $n$ verification equations is unsound unless each equation is first
+multiplied by a random \emph{small exponent}. Without them, errors in two signatures can cancel each other. When a batch fails, the bad signatures
+must be found. Binary splitting and group-testing strategies~\cite{pastuszak,lawmatt,zaverucha} do this with $O(d\log n)$ re-tests for $d$ bad signatures,
+under the assumption that the verifier itself performs the re-tests cheaply. Two consequences for this project:
+(a) the base scheme's batch equation has no random exponents (Finding~\ref{f:proof});
+(b) in the base scheme the verifier is \emph{not} the party that computes, because every re-test needs the TA and a satellite round trip.
+
+\section{Group key management}
+A group controller must send a fresh group key to all members and exclude leavers. Three families exist:
+\begin{itemize}
+  \item \emph{Unicast}: the key is encrypted separately for each member, so traffic is linear and the scheme is simple and easy to reason about.
+  \item \emph{Logical key hierarchy} (LKH)~\cite{lkh,rfc2627}: a tree of key-encrypting keys, so one leave costs $O(\log n)$ ciphertexts.
+  \item \emph{Single-broadcast CRT schemes}, descending from the ``secure lock'' of Chiou and Chen~\cite{securelock}: one CRT value hides the key for every member.
+        These need pairwise-coprime moduli and careful handling of leakage, because the public value is a function of every member's secret.
+\end{itemize}
+The base scheme uses a polynomial CRT variant. Finding~\ref{f:crt} shows that its specific construction leaks every member's modulus to every other
+member. We replace it with unicast delivery (optionally LKH).
+
+\section{UAV-assisted vehicular networks}
+UAVs extend vehicular coverage in three dimensions. Related work includes certificateless signcryption for UAV association~\cite{khan} and
+lightweight blockchain data sharing for disaster rescue~\cite{lvbs}. These works, like the base paper, either assume ground infrastructure or a
+single aerial controller. To our knowledge, none provides authentication for both UAVs and vehicles, plus inter-controller handover, under an
+\emph{offline} trust root.
+
+\section{Formal verification with ProVerif}
+ProVerif~\cite{proverif,proverifbook} analyses protocols in the applied pi calculus against an unbounded Dolev--Yao attacker~\cite{dolevyao}. It proves
+secrecy (``\texttt{not attacker(M)}''), authentication as correspondence between events (``\texttt{event(A) ==> event(B)}'', injective if each $A$ needs a
+distinct $B$), and forward secrecy through \emph{phases} in which long-term keys are leaked. When a property fails, ProVerif reconstructs an attack
+trace. It models cryptography symbolically (perfect primitives), so its results complement rather than replace computational reductions.
+
+\section{Positioning}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X ccccc@{}}
+\toprule
+Work & No RSU & No online TA & Escrow level & Vehicles & Multi-controller\\
+\midrule
+VANET CL schemes~\cite{mei,kumar,ali,xu} & \no & \no & 2 (claimed) & \yes & RSU handover\\
+Base paper~\cite{base} & \yes & \no & 1 & \no & \no\\
+\textbf{This work} & \yes & \yes & 2 & \yes & \yes\\
+\bottomrule
+\end{tabularx}
+\end{center}

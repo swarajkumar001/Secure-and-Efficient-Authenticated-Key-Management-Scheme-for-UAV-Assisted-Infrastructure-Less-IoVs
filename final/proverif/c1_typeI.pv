@@ -1,0 +1,56 @@
+(* C1 against a Dolev-Yao outsider (Type-I: may choose its own keys, does not know s).
+   Phase 1 leaks every long-term secret (x of the UAV, x and d of the TUAV, even s) to test
+   forward secrecy of session data sent in phase 0.
+   Run:  proverif -lib common c1_typeI.pv *)
+
+free s: master [private].
+free xU: secretv [private].
+free xA: secretv [private].
+free idU: bitstring.
+free idA: bitstring.
+free gk: bitstring [private].            (* group key GK_a *)
+free payload: bitstring [private].       (* data a member later sends under GK_a *)
+
+event uavRequest(bitstring, G, G).
+event tuavAccept(bitstring, G, G, G).
+event tuavSentKey(bitstring, G, G).
+event uavGotKey(bitstring, G, G).
+
+(* the TUAV accepts the honest UAV's REGISTERED key only if that UAV signed (Girault level 2) *)
+query ei: G, ea: G; inj-event(tuavAccept(idU, pubx(xU), ei, ea)) ==> inj-event(uavRequest(idU, ei, ea)).
+(* same pseudonym, ANY key: expected false under a malicious TA (key replacement, inherent to CL) *)
+query X: G, ei: G, ea: G; event(tuavAccept(idU, X, ei, ea)) ==> event(uavRequest(idU, ei, ea)).
+query ei: G, ea: G; inj-event(uavGotKey(idU, ei, ea)) ==> inj-event(tuavSentKey(idU, ei, ea)).
+query attacker(gk) phase 0.
+query attacker(payload).                 (* includes phase 1: forward secrecy *)
+
+let UAV =
+  in(c, (ea: G, ts: bitstring, sa: bitstring));
+  if clcheck(sa, (idA, ea, ts), (idA, pubx(xA)), pubx(xA), pubm(s)) = true then
+  new ei: exponent;
+  let Ei = exp(g, ei) in
+  new ts2: bitstring;
+  event uavRequest(idU, Ei, ea);
+  out(c, (idU, pubx(xU), Ei, ts2, clsign((idA, ea, Ei, ts2), xU, partial(s, (idU, pubx(xU))))));
+  in(c, ct: bitstring);
+  let K = kdf(exp(ea, ei), (idU, idA, ts2)) in
+  let gkr = sdec(ct, K) in
+  event uavGotKey(idU, Ei, ea);
+  out(c, senc(payload, kdf2(K, gkr))).
+
+let TUAV =
+  new ea: exponent;
+  let Ea = exp(g, ea) in
+  new ts: bitstring;
+  out(c, (Ea, ts, clsign((idA, Ea, ts), xA, partial(s, (idA, pubx(xA))))));
+  in(c, (id: bitstring, X: G, Ei: G, ts2: bitstring, sig: bitstring));
+  if clcheck(sig, (idA, Ea, Ei, ts2), (id, X), X, pubm(s)) = true then
+  event tuavAccept(id, X, Ei, Ea);
+  let K = kdf(exp(Ei, ea), (id, idA, ts2)) in
+  event tuavSentKey(id, Ei, Ea);
+  out(c, senc(gk, K)).
+
+process
+  out(c, pubm(s)); out(c, pubx(xU)); out(c, pubx(xA));
+  ( (!UAV) | (!TUAV)
+  | phase 1; out(c, (xU, xA, s)) )

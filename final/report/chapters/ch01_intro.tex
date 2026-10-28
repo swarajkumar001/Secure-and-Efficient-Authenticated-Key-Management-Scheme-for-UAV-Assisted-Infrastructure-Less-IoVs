@@ -1,0 +1,77 @@
+% =====================================================================
+\chapter{Introduction}\label{sec:intro}
+% =====================================================================
+
+\section{Motivation}
+In a normal Internet of Vehicles (IoV), roadside units (RSUs) on poles verify every vehicle and relay data to a cloud Trusted Authority (TA).
+After an earthquake or flood the poles, the fibre and the power are the first things to fail. Rescue convoys and evacuation traffic then need secure
+coordination most, and nobody is left to verify anyone. Tan, Zheng and Vijayakumar~\cite{base} call this the \emph{infrastructure-less IoV}.
+Their answer is a \emph{tethered UAV} (TUAV): a drone powered by cable from an emergency communications response vehicle (ECRV), which hovers for hours
+and acts as a flying edge server for a swarm of ordinary UAVs.
+
+\section{The base paper}
+The base paper makes three contributions:
+\begin{enumerate}[label=\textbf{(\roman*)}]
+  \item a TUAV-enabled edge architecture that replaces the dead RSU and gives three-dimensional coverage;
+  \item certificateless \emph{group} authentication of $n$ UAVs at once, with the costly bilinear pairings offloaded to the TA;
+  \item a group key distributed with the Chinese Remainder Theorem (CRT) and updated cheaply when UAVs join or leave.
+\end{enumerate}
+It reports 151\,ms to authenticate 120 UAVs, 104 bytes per request, and all eleven security properties of its comparison table.
+
+\section{Problem statement}
+\begin{keybox}[title={Research question}]
+Does the published scheme actually work \emph{without infrastructure}, and does it deliver the security properties it claims? If not, can those
+properties be recovered together, at comparable cost, and can the same design be extended to the vehicles and to a multi-TUAV deployment?
+\end{keybox}
+
+\section{Summary of findings}
+We re-derived every equation of the base paper, implemented it on a real pairing-friendly curve, and modelled its credential in ProVerif. The
+architecture is a good idea, but the protocol has six problems (Chapter~\ref{sec:findings}):
+\begin{enumerate}[label=\textbf{F\arabic*.}]
+  \item \textbf{It is not infrastructure-less.} The TUAV cannot verify anyone itself; every authentication needs a satellite round trip to the TA.
+  \item \textbf{The TA can impersonate every UAV} (no escrow resilience, no non-repudiation). Our code reproduces this, and ProVerif finds it automatically.
+  \item \textbf{No forward secrecy}: one leaked long-term secret exposes every past group key.
+  \item \textbf{Revocation does not revoke}: the CRT polynomial reveals every member's key, so a removed UAV still decrypts. Our code reproduces this.
+  \item \textbf{The unforgeability proof is empty}, and the batch check accepts cancelling errors. Our code reproduces the cancellation.
+  \item \textbf{The cost accounting omits the TA's pairings} and an $O(n^3)$-byte key broadcast. We measured both.
+\end{enumerate}
+
+\section{Contributions}
+\begin{keybox}
+Keep the TUAV architecture and move the trust root \emph{offline}. The TA certifies credentials before deployment and can trace a misbehaving entity
+afterwards, but no operation in the field ever waits for it. Every UAV, vehicle and TUAV can verify every other one using only the TA's public key.
+\end{keybox}
+\begin{enumerate}[label=\textbf{\arabic*.},leftmargin=*]
+  \item \textbf{Analysis} of the base scheme: six findings, four reproduced in code and one confirmed by ProVerif (Chapter~\ref{sec:findings}).
+  \item \textcolor{uavc}{\textbf{C1, autonomous UAV tier}}: escrow-free, pairing-free certificateless credentials verified locally by the TUAV in a
+        small-exponent batch with a bounded fallback; per-member group-key delivery under fresh ECDH keys; secure rekeying (Chapter~\ref{sec:c1}).
+  \item \textcolor{vehc}{\textbf{C2, vehicle tier}}: vehicles admitted through authenticated UAVs that relay and filter their requests, with a separate
+        regional key for V2V (Chapter~\ref{sec:c2}).
+  \item \textcolor{hoc}{\textbf{C3, multi-TUAV handover}}: single-use encrypted tickets and one fresh ECDH, with no signature verification and no TA (Chapter~\ref{sec:c3}).
+  \item \textbf{Formal verification} in ProVerif: five models and sixteen queries, including the base scheme's escrow attack and the exact boundary of our
+        own escrow guarantee (Chapter~\ref{ch:pv}).
+  \item \textbf{Implementation and measured evaluation}: both schemes on the same curve and library, 20 tests, and eight experiments covering
+        availability, latency, batch poisoning, traffic, vehicles, handover under mobility, and attacks (Chapters~\ref{ch:impl}--\ref{ch:eval}).
+\end{enumerate}
+
+\section{Headline results}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X cc l@{}}
+\toprule
+Metric & Base scheme & Ours & Evidence\\
+\midrule
+Authentication when the TA link is down & 0\% & 100\% & measured model (E1)\\
+TA can impersonate a registered UAV & yes & no & ProVerif + code (E7)\\
+Revoked UAV obtains the new group key & yes & no & ProVerif + code (E7)\\
+Honest UAVs admitted with one bad request & 0\% & all & code (E3, E7)\\
+Group-key traffic, $n=120$ & 17.5\,MB & 9.6\,KB & measured (E4)\\
+Authenticate + key 120 UAVs, base paper's constants & 3720\,ms + RTT & 228\,ms & analytical\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{Organisation}
+Chapter~\ref{ch:background} reviews the background. Chapter~\ref{sec:base} recalls the base scheme and Chapter~\ref{sec:findings} analyses it.
+Chapter~\ref{sec:model} gives the system and threat model, the design goals and the notation. Chapters~\ref{sec:setup}--\ref{sec:tr} present the framework,
+Chapter~\ref{sec:security} the security analysis and Chapter~\ref{ch:pv} the formal verification. Chapter~\ref{ch:impl} describes the implementation.
+Chapters~\ref{sec:perf} and~\ref{ch:eval} report the analytical and the measured evaluation. Chapter~\ref{ch:conclusion} discusses limitations and concludes.

@@ -1,0 +1,10 @@
+operation,median_ms,reps
+G1 scalar multiplication,6.8657,60
+G1 small (64-bit) multiplication,1.3922,60
+G1 point addition,0.0199,60
+G2 scalar multiplication,31.0114,10
+bilinear pairing,1403.2725,10
+GT exponentiation,88.5351,10
+SHA-256 hash,0.0043,60
+HKDF-SHA256,0.0318,60
+AES-128-GCM seal (20 B),0.017,60

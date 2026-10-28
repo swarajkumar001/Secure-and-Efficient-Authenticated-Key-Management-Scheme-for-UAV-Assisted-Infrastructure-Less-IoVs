@@ -1,0 +1,66 @@
+(* C3: ticket-based handover between TUAV a and TUAV b.
+   The member M shares K_M with TUAV a; TUAV a and b share K_ab (from HO0).
+   TUAV b keeps a table of used ticket nonces (single-use tickets).
+   Phase 1 leaks K_ab and K_M to test forward secrecy of the new session.
+   Run:  proverif -lib common c3_handover.pv *)
+
+free KM: key [private].
+free Kab: key [private].
+free idM: bitstring.
+free idA: bitstring.
+free idB: bitstring.
+free gkB: bitstring [private].
+free payload: bitstring [private].
+
+table usedN(bitstring).
+
+event memberStart(bitstring, G).
+event tuavBAccept(bitstring, G).
+event tuavBSent(bitstring, G, G).
+event memberDone(bitstring, G, G).
+
+query e: G; inj-event(tuavBAccept(idM, e)) ==> inj-event(memberStart(idM, e)).
+query e: G, eb: G; inj-event(memberDone(idM, e, eb)) ==> inj-event(tuavBSent(idM, e, eb)).
+query attacker(gkB) phase 0.
+query attacker(payload).
+
+(* HO1: TUAV a issues a ticket over the existing channel K_M *)
+let TUAVa =
+  new tsh: bitstring;
+  new N: bitstring;
+  let hk = kdf2(KM, (idB, tsh)) in
+  let tk = senc((idM, hk, N), Kab) in
+  out(c, senc((tsh, tk), KM)).
+
+(* HO2 / HO4 *)
+let Member =
+  in(c, blob: bitstring);
+  let (tsh: bitstring, tk: bitstring) = sdec(blob, KM) in
+  let hk = kdf2(KM, (idB, tsh)) in
+  new e: exponent;
+  let E = exp(g, e) in
+  event memberStart(idM, E);
+  out(c, (idA, tk, E, mac((tk, E), hk)));
+  in(c, (Eb: G, ct: bitstring));
+  let K2 = kdf2(hk, k2b(kdf(exp(Eb, e), idM))) in
+  let gk = sdec(ct, K2) in
+  event memberDone(idM, E, Eb);
+  out(c, senc(payload, K2)).
+
+(* HO3 *)
+let TUAVb =
+  in(c, (=idA, tk: bitstring, E: G, t: bitstring));
+  let (id: bitstring, hk: key, N: bitstring) = sdec(tk, Kab) in
+  if t = mac((tk, E), hk) then
+  get usedN(=N) in 0 else
+  insert usedN(N);
+  event tuavBAccept(id, E);
+  new eb: exponent;
+  let Eb = exp(g, eb) in
+  let K2 = kdf2(hk, k2b(kdf(exp(E, eb), id))) in
+  event tuavBSent(id, E, Eb);
+  out(c, (Eb, senc(gkB, K2))).
+
+process
+  ( (!TUAVa) | (!Member) | (!TUAVb)
+  | phase 1; out(c, (KM, Kab)) )

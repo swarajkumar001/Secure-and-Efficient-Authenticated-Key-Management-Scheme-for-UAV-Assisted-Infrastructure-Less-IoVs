@@ -1,0 +1,89 @@
+% =====================================================================
+\chapter{Formal Verification with ProVerif}\label{ch:pv}
+% =====================================================================
+The proof sketches of Chapter~\ref{sec:security} argue each property separately. A protocol can still fail through an interaction between steps that no
+single proof considers. We therefore modelled the framework, and the base scheme's credential, in ProVerif~2.05~\cite{proverif,proverifbook}. ProVerif
+explores all interleavings of an unbounded number of sessions against a Dolev--Yao attacker. All models are in \texttt{final/proverif/}, and the full
+output of every run is kept next to them (\texttt{*.out}).
+
+\section{Modelling choices}
+\begin{itemize}
+  \item \textbf{Certificateless signatures.} The partial key is a function $\mathsf{partial}(s,(\mathit{id},X))$ of the master key and of the identity
+        \emph{and} the entity's public value, mirroring $h=H_1(\PID,\ep,X,Y)$. A signature $\mathsf{clsign}(m,x,d)$ needs both the secret value $x$ and the partial
+        key $d$. Verification $\mathsf{clcheck}$ needs only $\mathit{id}$, $X=\mathsf{pubx}(x)$ and $\Ppub=\mathsf{pubm}(s)$.
+  \item \textbf{Diffie--Hellman} is modelled with the standard equation $\mathsf{exp}(\mathsf{exp}(g,a),b)=\mathsf{exp}(\mathsf{exp}(g,b),a)$; KDF, AEAD and MAC
+        are modelled as perfect.
+  \item \textbf{Type-I vs Type-II.} In the Type-I model the master key $s$ is private. In the Type-II model $s$ is public, so the attacker \emph{is} the TA.
+  \item \textbf{Forward secrecy} uses a second \emph{phase} in which every long-term secret (and, for C1, even $s$) is published. Secrets sent in phase~0
+        must stay secret.
+  \item \textbf{Single-use tickets} (C3) are modelled with a ProVerif table of used nonces.
+  \item \textbf{The base scheme's credential} is abstracted as $\Gamma=\mathsf{gam}(s_i,\xi_i,R_{tu},Q_{tu})$, where every argument except $s_i$ is public, exactly
+        as in equation~\eqref{eq:gamma2}.
+\end{itemize}
+
+\section{Results}
+\begin{table}[H]
+\centering\small
+\caption{ProVerif results. ``Expected'' is what the design predicts; every result matches it.}
+\label{tab:pv}
+\begin{tabularx}{\linewidth}{@{}l l >{\raggedright\arraybackslash}X c c@{}}
+\toprule
+\# & Model & Property & Expected & Result\\
+\midrule
+Q1 & C1, Type I & TUAV accepts UAV's registered key $\Rightarrow$ UAV sent it (injective) & true & \yes\ true\\
+Q2 & C1, Type I & TUAV accepts the UAV's identity with \emph{any} key $\Rightarrow$ UAV sent it & true & \yes\ true\\
+Q3 & C1, Type I & UAV obtains a key $\Rightarrow$ TUAV sent it to that UAV (injective) & true & \yes\ true\\
+Q4 & C1, Type I & secrecy of the group key $\GK_a$ & true & \yes\ true\\
+Q5 & C1, Type I & data under $\GK_a$ stays secret after \emph{all} long-term keys leak & true & \yes\ true\\
+\midrule
+Q6 & C1, Type II & malicious TA: accept under the \emph{registered} key $\Rightarrow$ UAV sent it & true & \yes\ true\\
+Q7 & C1, Type II & malicious TA: accept the identity with \emph{any} key $\Rightarrow$ UAV sent it & false & \halfmark\ false\\
+Q8 & C1, Type II & data under the pairwise key $K_i$ stays secret from the TA & true & \yes\ true\\
+Q9 & C1, Type II & group key secret from the TA & false & \halfmark\ false\\
+\midrule
+Q10 & Rekey & revoked, compromised member knows the \emph{old} key (sanity) & known & \yes\ known\\
+Q11 & Rekey & revoked member cannot learn the \emph{new} key & true & \yes\ true\\
+\midrule
+Q12 & C3 & new TUAV accepts $\M$ $\Rightarrow$ $\M$ started that handover (injective) & true & \halfmark\ non-inj.\ only\\
+Q13 & C3 & $\M$ completes $\Rightarrow$ new TUAV sent that response (injective) & true & \yes\ true\\
+Q14 & C3 & secrecy of the new cell's group key & true & \yes\ true\\
+Q15 & C3 & data in the new cell stays secret after $K_{ab}$ and $K_\M$ leak & true & \yes\ true\\
+\midrule
+Q16 & Base scheme & TUAV/TA accept UAV $\Rightarrow$ UAV sent it (TA's database leaked) & false & \no\ \textbf{attack}\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Interpretation}
+\paragraph{The base scheme (Q16).} ProVerif finds an attack in which the attacker, knowing $s_i$ from the TA's database, produces a credential the
+verifier accepts for a UAV that never sent anything. This is Finding~\ref{f:escrow}, found automatically.
+
+\paragraph{C1 against outsiders (Q1--Q5).} All properties hold, including mutual authentication in both directions and forward secrecy. Q5 holds even
+when the master key $s$ is published in phase~1, because session data depends on erased ephemeral exponents.
+
+\paragraph{C1 against a malicious TA (Q6--Q9): the exact boundary.} This is the most informative result.
+\begin{itemize}
+  \item \textbf{Q6 holds}: the TA cannot sign under a UAV's \emph{registered} key, because it lacks $x$. This is the escrow-freeness the base scheme lacks.
+  \item \textbf{Q8 holds}: the TA cannot read data protected by the UAV's pairwise key $K_i$.
+  \item \textbf{Q7 fails} (as predicted): the TA can create a \emph{second} key $X'$ for the same pseudonym, issue $\mathsf{partial}(s,(\mathit{id},X'))$, and be
+        accepted. This is key replacement, which every certificateless scheme permits (Girault level~2).
+  \item \textbf{Q9 fails} (as predicted): the TA can enrol a phantom member and so receive the group key.
+\end{itemize}
+These four results replace a vague claim (``the TA cannot impersonate'') with a precise one: \emph{the TA cannot impersonate a registered key or read pairwise
+traffic; it can create detectable new keys}. Section~\ref{sec:security} and the limitations in Chapter~\ref{ch:conclusion} are worded accordingly.
+
+\paragraph{Revocation (Q10--Q11).} After a member is removed and fully compromised, the new key stays secret. The base scheme fails this in the
+computational setting (Finding~\ref{f:crt}, reproduced in code). The polynomial-root attack is algebraic and cannot be expressed in ProVerif's symbolic
+model, which is why we demonstrate it with code rather than ProVerif.
+
+\paragraph{Handover (Q12--Q15).} Secrecy and forward secrecy hold, and so does the member-side injective agreement (Q13). For Q12, ProVerif proves
+non-injective agreement but cannot prove injectivity. The reason is that in ProVerif a table lookup and the later insert are not atomic, so two parallel
+copies of the new TUAV can both accept one replayed ticket before either records the nonce. In our implementation the TUAV processes handover requests
+sequentially, so check-and-insert is atomic and the replay is rejected (test \texttt{test\_c3\_handover}). We report the ProVerif result as it is. Even in the
+abstract model, a replayed ticket gives the attacker nothing: by Q13--Q15 it cannot complete the session or learn any key.
+
+\begin{limitbox}
+ProVerif works in the symbolic model: primitives are perfect and the attacker cannot exploit algebra beyond the stated equations. Its results complement,
+and do not replace, the computational arguments of Chapter~\ref{sec:security}. The models abstract timestamps, epochs and the batch equation; the batch
+test's soundness rests on Theorem~\ref{thm:batch} and is checked in code (experiment E7).
+\end{limitbox}

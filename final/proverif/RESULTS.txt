@@ -1,0 +1,21 @@
+== c1_typeI.pv
+RESULT inj-event(tuavAccept(idU[],pubx(xU[]),ei_1,ea_2)) ==> inj-event(uavRequest(idU[],ei_1,ea_2)) is true.
+RESULT event(tuavAccept(idU[],X_1,ei_1,ea_2)) ==> event(uavRequest(idU[],ei_1,ea_2)) is true.
+RESULT inj-event(uavGotKey(idU[],ei_1,ea_2)) ==> inj-event(tuavSentKey(idU[],ei_1,ea_2)) is true.
+RESULT not attacker(gk[]) is true.
+RESULT not attacker_p1(payload[]) is true.
+== c1_typeII.pv
+RESULT inj-event(tuavAccept(idU[],pubx(xU[]),ei_1,ea_2)) ==> inj-event(uavRequest(idU[],ei_1,ea_2)) is true.
+RESULT event(tuavAccept(idU[],X_1,ei_1,ea_2)) ==> event(uavRequest(idU[],ei_1,ea_2)) is false.
+RESULT not attacker(unicast[]) is true.
+RESULT not attacker(gk[]) is false.
+== c1_revocation.pv
+RESULT not attacker(gk1[]) is false.
+RESULT not attacker(gk2[]) is true.
+== c3_handover.pv
+RESULT inj-event(tuavBAccept(idM[],e_1)) ==> inj-event(memberStart(idM[],e_1)) is false.
+RESULT inj-event(memberDone(idM[],e_1,eb_1)) ==> inj-event(tuavBSent(idM[],e_1,eb_1)) is true.
+RESULT not attacker(gkB[]) is true.
+RESULT not attacker_p1(payload[]) is true.
+== base_escrow.pv
+RESULT event(tuavAccepts(idU[],xi_2)) ==> event(uavSent(idU[],xi_2)) is false.

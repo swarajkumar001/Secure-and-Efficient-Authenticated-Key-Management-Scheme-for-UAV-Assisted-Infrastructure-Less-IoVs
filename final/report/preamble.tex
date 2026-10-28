@@ -1,0 +1,147 @@
+% =====================================================================
+%  Final project report  --  Team 6
+%  Build:  cd final/report && pdflatex final_report && pdflatex final_report
+%  Measured numbers come from final/results (experiments/run_all.py);
+%  analytical numbers from phase2/data (compute_results.py).
+% =====================================================================
+
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[a4paper,margin=2.2cm,headheight=14pt]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{booktabs,array,tabularx,multirow}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{pifont}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,shapes.misc,fit,backgrounds,calc,shadows,decorations.pathreplacing}
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+\pgfplotsset{compat=1.17}
+\usepackage[colorlinks=true,linkcolor=deep,citecolor=uavc,urlcolor=uavc]{hyperref}
+
+% ---------------- palette ----------------
+\definecolor{deep}{HTML}{0B3954}     % night sky  -- titles, TA
+\definecolor{uavc}{HTML}{087E8B}     % teal       -- UAV tier (C1)
+\definecolor{vehc}{HTML}{6A4C93}     % violet     -- vehicle tier (C2)
+\definecolor{hoc}{HTML}{E07A1F}      % amber      -- handover tier (C3)
+\definecolor{bad}{HTML}{C81D25}      % red        -- flaws, attacks
+\definecolor{good}{HTML}{2A9D3F}     % green      -- fixed / holds
+\definecolor{soft}{HTML}{F2F6F8}     % light panel
+\definecolor{ink}{HTML}{1F2933}
+
+\color{ink}
+\captionsetup{font=small,labelfont={bf,color=deep}}
+\setlist{itemsep=2pt,topsep=4pt}
+
+% ---------------- headings ----------------
+\titleformat{\chapter}[display]{\bfseries\sffamily\color{deep}}{\large\color{uavc}CHAPTER \thechapter}{4pt}{\huge}
+\titlespacing*{\chapter}{0pt}{0pt}{18pt}
+\titleformat{\section}{\Large\bfseries\sffamily\color{deep}}{\thesection}{0.8em}{}
+\titleformat{\subsection}{\large\bfseries\sffamily\color{uavc}}{\thesubsection}{0.7em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\sffamily\color{ink}}{\thesubsubsection}{0.6em}{}
+\pagestyle{fancy}\fancyhf{}
+\fancyhead[L]{\small\sffamily\color{deep}Cutting the Cord -- Final Report}
+\fancyhead[R]{\small\sffamily\color{deep}Team 6}
+\fancyfoot[C]{\small\sffamily\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ---------------- boxes ----------------
+\newtcolorbox{whatbox}[1][]{enhanced,breakable,colback=uavc!6,colframe=uavc,boxrule=0.6pt,arc=2mm,
+  fonttitle=\sffamily\bfseries,title={What this step does},#1}
+\newtcolorbox{whybox}[1][]{enhanced,breakable,colback=hoc!7,colframe=hoc,boxrule=0.6pt,arc=2mm,
+  fonttitle=\sffamily\bfseries,title={Why it is designed this way},#1}
+\newtcolorbox{flawbox}[1][]{enhanced,breakable,colback=bad!5,colframe=bad,boxrule=0.6pt,arc=2mm,
+  fonttitle=\sffamily\bfseries,#1}
+\newtcolorbox{keybox}[1][]{enhanced,breakable,colback=deep!5,colframe=deep,boxrule=0.6pt,arc=2mm,
+  fonttitle=\sffamily\bfseries,title={Key idea},#1}
+\newtcolorbox{limitbox}[1][]{enhanced,breakable,colback=black!3,colframe=black!55,boxrule=0.6pt,arc=2mm,
+  fonttitle=\sffamily\bfseries,title={Honest limitation},#1}
+\newtcolorbox{stepbox}[2]{enhanced,breakable,colback=white,colframe=#1,boxrule=0.8pt,arc=2mm,
+  fonttitle=\sffamily\bfseries,coltitle=white,colbacktitle=#1,title={#2}}
+
+% ---------------- theorem-like ----------------
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{finding}{Finding}
+
+% ---------------- notation macros ----------------
+\newcommand{\TA}{\mathsf{TA}}
+\newcommand{\Ta}{\mathcal{T}_a}
+\newcommand{\Tb}{\mathcal{T}_b}
+\newcommand{\U}{\mathcal{U}}
+\newcommand{\V}{\mathcal{V}}
+\newcommand{\Ent}{\mathcal{E}}
+\newcommand{\M}{\mathcal{M}}
+\newcommand{\G}{\mathbb{G}}
+\newcommand{\Zq}{\mathbb{Z}_q^{*}}
+\newcommand{\Ppub}{P_{\mathrm{pub}}}
+\newcommand{\Tpub}{T_{\mathrm{pub}}}
+\newcommand{\PID}{\mathit{PID}}
+\newcommand{\RID}{\mathit{RID}}
+\newcommand{\ID}{\mathit{ID}}
+\newcommand{\pk}{\mathit{pk}}
+\newcommand{\sk}{\mathit{sk}}
+\newcommand{\ep}{\mathit{ep}}
+\newcommand{\ts}{\mathit{ts}}
+\newcommand{\GK}{\mathit{GK}}
+\newcommand{\VK}{\mathit{VK}}
+\newcommand{\Tk}{\mathit{Tk}}
+\newcommand{\hk}{\mathit{hk}}
+\newcommand{\Enc}{\mathsf{Enc}}
+\newcommand{\Dec}{\mathsf{Dec}}
+\newcommand{\KDF}{\mathsf{KDF}}
+\newcommand{\MAC}{\mathsf{MAC}}
+\newcommand{\Hz}{H_0}
+\newcommand{\Ho}{H_1}
+\newcommand{\Ht}{H_2}
+\newcommand{\Hd}{H_3}
+\newcommand{\cat}{\,\|\,}
+\newcommand{\yes}{\textcolor{good}{\ding{51}}}
+\newcommand{\no}{\textcolor{bad}{\ding{55}}}
+\newcommand{\halfmark}{\textcolor{hoc}{\ding{108}}}
+\newcommand{\steplabel}[2]{\textcolor{#1}{\textsf{\textbf{#2}}}}
+
+% ---------------- TikZ styles ----------------
+\tikzset{
+  ent/.style={draw=#1,fill=#1!12,very thick,rounded corners=3pt,minimum width=2.3cm,minimum height=0.9cm,
+              align=center,font=\sffamily\small\bfseries,drop shadow={opacity=0.15}},
+  ent/.default=deep,
+  msg/.style={-{Stealth[length=2.6mm]},thick,draw=#1},
+  msg/.default=ink,
+  lbl/.style={font=\scriptsize\sffamily,fill=white,inner sep=1.5pt,align=center},
+  life/.style={draw=black!30,dashed},
+  act/.style={draw=#1,fill=#1!8,rounded corners=2pt,font=\scriptsize\sffamily,align=left,inner sep=3pt},
+  tier/.style={draw=#1,fill=#1!5,rounded corners=6pt,dashed,thick},
+}
+\pgfplotsset{every axis/.append style={font=\small\sffamily,grid=major,grid style={black!10},
+  legend style={font=\scriptsize\sffamily,draw=black!20,fill=white,fill opacity=0.9,text opacity=1},
+  tick label style={font=\scriptsize\sffamily}, label style={font=\small\sffamily}}}
+
+\graphicspath{{../figures/}}
+\usepackage{listings}
+\lstset{basicstyle=\ttfamily\scriptsize,breaklines=true,frame=single,rulecolor=\color{black!25},backgroundcolor=\color{soft},
+  keywordstyle=\color{uavc}\bfseries,commentstyle=\color{black!55}\itshape,columns=fullflexible,keepspaces=true}
+\lstdefinelanguage{pv}{morekeywords={free,type,fun,reduc,forall,equation,const,event,query,let,in,out,new,if,then,else,process,phase,table,get,insert,inj,attacker,private,data,typeConverter},
+  morecomment=[n]{(*}{*)}}
+\pgfplotstableread[col sep=comma]{../../phase2/data/ga_cost.csv}\gacost
+\pgfplotstableread[col sep=comma]{../../phase2/data/e2e.csv}\etoe
+\pgfplotstableread[col sep=comma]{../../phase2/data/keybytes.csv}\keybytes
+\pgfplotstableread[col sep=comma]{../../phase2/data/isolation.csv}\isolation
+\pgfplotstableread[col sep=comma]{../../phase2/data/rekey.csv}\rekey
+
+% =====================================================================

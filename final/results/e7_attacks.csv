@@ -1,0 +1,10 @@
+scheme,attack,succeeds
+base,TA forges a UAV request (Finding 2),True
+base,cancelling errors pass the batch (Finding 5),True
+base,revoked UAV recovers the new group key (Finding 4),True
+base,one bad request -> honest UAVs still admitted,False
+ours,"TA forges a member signature (knows d, not x)",False
+ours,cancelling errors pass the batch,False
+ours,revoked UAV recovers the new group key,False
+ours,one bad request -> honest UAVs still admitted,True
+ours,replayed request accepted under a new beacon,False

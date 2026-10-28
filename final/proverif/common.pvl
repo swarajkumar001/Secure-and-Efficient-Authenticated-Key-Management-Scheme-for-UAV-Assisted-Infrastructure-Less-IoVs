@@ -1,0 +1,33 @@
+(* Shared declarations for the Cutting-the-Cord models (ProVerif 2.05).
+   Certificateless signature: signing needs the entity's secret value x AND the TA-issued
+   partial key d = partial(s, id); verification needs only id, X = pubx(x) and Ppub = pubm(s). *)
+
+free c: channel.
+
+type G.
+type exponent.
+type key.
+type master.
+type secretv.
+type partialk.
+
+(* Diffie-Hellman *)
+const g: G [data].
+fun exp(G, exponent): G.
+equation forall x: exponent, y: exponent; exp(exp(g, x), y) = exp(exp(g, y), x).
+
+(* KDF, AEAD, MAC *)
+fun kdf(G, bitstring): key.
+fun kdf2(key, bitstring): key.
+fun senc(bitstring, key): bitstring.
+reduc forall m: bitstring, k: key; sdec(senc(m, k), k) = m.
+fun mac(bitstring, key): bitstring.
+fun k2b(key): bitstring [data, typeConverter].
+
+(* certificateless credentials *)
+fun pubm(master): G.
+fun pubx(secretv): G.
+fun partial(master, bitstring): partialk.          (* d bound to (id, X) via h = H1(PID, ep, X, Y) *)
+fun clsign(bitstring, secretv, partialk): bitstring.
+reduc forall m: bitstring, x: secretv, s: master, id: bitstring;
+      clcheck(clsign(m, x, partial(s, id)), m, id, pubx(x), pubm(s)) = true.   (* id = (identity, X) *)

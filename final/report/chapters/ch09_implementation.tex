@@ -1,0 +1,102 @@
+% =====================================================================
+\chapter{Implementation}\label{ch:impl}
+% =====================================================================
+The base paper evaluates only by counting operations. We implemented both schemes so that every finding and every claim of our framework can be
+\emph{executed}, and so that both schemes can be timed on the same machine. The code is in \texttt{final/} (about 1\,800 lines including tests, experiments and
+ProVerif models).
+
+\section{Design principles}
+\begin{enumerate}[label=\textbf{P\arabic*.}]
+  \item \textbf{Same curve, same library for both schemes.} Both run on BN254 through \texttt{py\_ecc}~\cite{pyecc} (pure Python). The group $\G$ of our scheme is
+        BN254's $\G_1$, which is exactly the group the base scheme pairs. Any measured difference therefore comes from the protocols, not from the tooling.
+  \item \textbf{Step labels as in the papers.} Every function is named after the step it implements (IS, US, GA, GD, DU for the base scheme; RG, UA, RK, VA, HO, TR
+        for ours), so the code can be read next to Chapters~\ref{sec:base} and~\ref{sec:setup}--\ref{sec:tr}.
+  \item \textbf{Every operation is counted.} The wrapper \texttt{cutcord/ec.py} counts scalar multiplications, small multiplications, additions,
+        pairings and $\G_T$ exponentiations, so measured times can be cross-checked against operation counts (Chapter~\ref{ch:eval}).
+  \item \textbf{Standard symmetric primitives} from the \texttt{cryptography} library~\cite{pyca}: HKDF-SHA256, AES-128-GCM, HMAC-SHA256.
+\end{enumerate}
+
+\section{Structure}
+\begin{table}[H]
+\centering\small
+\caption{Code layout.}
+\begin{tabularx}{\linewidth}{@{}l r >{\raggedright\arraybackslash}X@{}}
+\toprule
+File & Lines & Content\\
+\midrule
+\texttt{cutcord/ec.py} & 105 & group operations with counters, domain-separated hashes $H(\cdot)$ and $H_q(\cdot)$, size table\\
+\texttt{cutcord/sym.py} & 35 & KDF, AEAD seal/open, MAC\\
+\texttt{cutcord/ours.py} & 451 & TA (ST, RG, TR), credentials and (batch) signatures, \texttt{Member} (UAV/vehicle), \texttt{TUAV} (UA, RK, VA, HO)\\
+\texttt{cutcord/base.py} & 172 & base scheme IS--DU, CRT polynomial, satellite \texttt{Link}, attacks of Findings 2 and 4\\
+\texttt{tests/} & 236 & 20 tests (Table~\ref{tab:tests})\\
+\texttt{experiments/run\_all.py} & 392 & experiments E0--E7 $\rightarrow$ \texttt{results/*.csv}, \texttt{summary.json}\\
+\texttt{experiments/make\_figures.py} & 149 & figures for this report and the paper\\
+\texttt{proverif/} & 266 & five models and a shared library (Chapter~\ref{ch:pv})\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Realising the base scheme}
+\begin{itemize}
+  \item \textbf{Symmetric pairing on an asymmetric curve.} The base paper writes $\hat e:\G_1\times\G_1\to\G_2$; BN254 offers $e:\G_2\times\G_1\to\G_T$. Every
+        pairing in Step GA2 has, as one argument, a value the TA can compute in $\G_2$ from scalars it knows ($P$, $s_iP$, $s_{tu}P$). We place that argument in
+        $\G_2$ and keep the protocol otherwise verbatim. The test \texttt{test\_ga3\_accepts\_honest\_batch} confirms that GA3 balances.
+  \item \textbf{Declared reading of $\sigma_i$ in GD1--GD6.} As in Finding~\ref{f:crt}(a), the CRT step needs integer moduli. We use
+        $\sigma^{\mathrm{int}}_i=\mathrm{nextprime}(H(\sigma_i))$ of 160 bits, which makes the moduli pairwise coprime and lets every honest member recover the key
+        (\texttt{test\_crt\_key\_distribution}).
+  \item \textbf{GA1 forwards $\Gamma_i$}, which GA2 needs although the paper's GA1 does not list it.
+\end{itemize}
+
+\section{Realising our framework}
+\begin{itemize}
+  \item \textbf{Credentials} (\texttt{TA.register}) implement RG1--RG4 with one credential per epoch, a Schnorr proof of possession and the RG4 check.
+  \item \textbf{Batch verification} (\texttt{batch\_verify}) implements equation~\eqref{eq:bv} with 64-bit weights; \texttt{TUAV.verify\_window} adds the filter,
+        the fallback and the adaptive mode switch (Figure~\ref{fig:fallback}).
+  \item \textbf{Key delivery and rekeying} (\texttt{TUAV.admit}, \texttt{TUAV.rekey}) seal $\GK_a\cat\nu$ under each member's $K_i$, with the version and timestamp as
+        associated data.
+  \item \textbf{Members} keep a \emph{pending} request (its ephemeral $e$) separately from the \emph{established} session ($K$, epoch). The ephemeral is erased as
+        soon as the key is derived. An early version stored both in one place, and our tests caught the resulting bug.
+  \item \textbf{Vehicles} (\texttt{Member(role="veh")}, \texttt{Member.relay}, \texttt{TUAV.process\_bundle}) and \textbf{handover}
+        (\texttt{link\_offer/accept}, \texttt{issue\_ticket}, \texttt{accept\_handover} with a nonce cache) follow VA1--VA5 and HO0--HO4.
+\end{itemize}
+
+\section{Tests}
+\begin{table}[H]
+\centering\small
+\caption{The 20 tests (\texttt{python -m pytest}, all passing).}
+\label{tab:tests}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.47\linewidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+Test & What it establishes\\
+\midrule
+\multicolumn{2}{@{}l}{\emph{Base scheme}}\\
+\texttt{ga3\_accepts\_honest\_batch} & GA3 and per-UAV checks balance (implementation is faithful)\\
+\texttt{crt\_key\_distribution} & every honest member recovers $\kappa_{tu}$\\
+\texttt{finding2\_ta\_forges\_any\_uav} & a TA-built request passes GA3 (Finding 2)\\
+\texttt{finding5\_batch\_cancellation} & $\Gamma_1+\Delta,\Gamma_2-\Delta$ pass the batch, fail individually (Finding 5)\\
+\texttt{finding1\_one\_bad\_request\_rejects\_all} & one bad request rejects the whole batch\\
+\texttt{finding4\_revoked\_member\_recovers\_new\_key} & the revocation attack recovers $\kappa^*$ (Finding 4)\\
+\midrule
+\multicolumn{2}{@{}l}{\emph{Our framework}}\\
+\texttt{registration\_keys\_consistent} & $\sk\cdot P=\pk$\\
+\texttt{c1\_join\_and\_group\_key} & one batch check admits all, everyone gets the same $\GK_a$\\
+\texttt{ta\_cannot\_sign\_without\_x} & knowing $d$ is not enough to sign (escrow-freeness)\\
+\texttt{key\_replacement\_fails} & an outsider replacing $X$ is rejected (Type I)\\
+\texttt{batch\_rejects\_cancelling\_errors} & random weights defeat cancellation\\
+\texttt{fallback\_keeps\_honest\_and\_evicts\_bad} & failed batch $\rightarrow$ honest admitted, bad evicted, mode switch\\
+\texttt{replayed\_request\_rejected\_in\_new\_beacon} & requests are bound to $E_a$\\
+\texttt{rekey\_locks\_out\_removed} & removed member cannot open any new entry\\
+\texttt{c2\_vehicle\_admission\_via\_relay} & vehicles keyed through a relay; $\VK_a\neq\GK_a$\\
+\texttt{c2\_outsider\_bundle\_dropped} & bundles from non-members are dropped\\
+\texttt{c3\_handover} & ticket handover works; replayed ticket rejected\\
+\texttt{c3\_evicted\_member\_cannot\_hand\_over} & eviction lists propagate between TUAVs\\
+\texttt{tracing\_and\_global\_revocation} & TR1 recovers $\RID$; TR2 bans future epochs only\\
+\texttt{pseudonyms\_unlinkable\_across\_epochs} & no value repeats across epochs\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{limitbox}
+\texttt{py\_ecc} is pure Python and not constant-time: it suits a reference implementation and comparative measurement, not deployment. BN254 offers roughly
+100-bit security today, and our scheme needs no pairing, so a deployment would use a 128-bit curve such as P-256 or Curve25519 with a constant-time library.
+\end{limitbox}

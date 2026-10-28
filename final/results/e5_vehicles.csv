@@ -1,0 +1,6 @@
+vehicles,batch_admit_ms,individual_verify_ms,outsider_bundle_drop_ms,all_keyed,drop_reason
+50,3074.3,3998.8,0.008,True,relay not a member
+100,6034.6,7765.8,0.007,True,relay not a member
+200,11949.2,15619.1,0.011,True,relay not a member
+300,18366.5,23376.2,0.015,True,relay not a member
+500,29617.3,39161.7,0.015,True,relay not a member

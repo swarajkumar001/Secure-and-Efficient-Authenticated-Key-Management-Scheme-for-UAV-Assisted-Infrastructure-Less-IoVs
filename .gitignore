@@ -77,3 +77,7 @@ desktop.ini
 # Office lock files. These start with ~$, so they slip past the Phase1_* rule
 # above and one of them reached the public repo.
 ~$*
+
+# ProVerif binaries (download separately) and local run logs
+final/tools/
+final/results_*.log
