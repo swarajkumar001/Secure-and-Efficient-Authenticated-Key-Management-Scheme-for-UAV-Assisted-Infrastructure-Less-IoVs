@@ -1,0 +1,43 @@
+(* C3 as first designed, with TUAV a captured: the attacker holds K_ab and K_M from the start.
+   Tickets alone admit a member, so ProVerif should find that a member is accepted without
+   having started anything, and that the neighbour's group key leaks.
+   Run:  proverif -lib common c3_captured_ticket_only.pv *)
+
+free KM: key.                  (* public: the captured TUAV holds it *)
+free Kab: key.                 (* public: the captured TUAV holds it *)
+free idM: bitstring.
+free idA: bitstring.
+free idB: bitstring.
+free gkB: bitstring [private].
+
+table usedN(bitstring).
+
+event memberStart(bitstring, G).
+event tuavBAccept(bitstring, G).
+
+query e: G; event(tuavBAccept(idM, e)) ==> event(memberStart(idM, e)).
+query attacker(gkB).
+
+let Member =
+  in(c, blob: bitstring);
+  let (tsh: bitstring, tk: bitstring) = sdec(blob, KM) in
+  let hk = kdf2(KM, (idB, tsh)) in
+  new e: exponent;
+  let E = exp(g, e) in
+  event memberStart(idM, E);
+  out(c, (idA, tk, E, mac((tk, E), hk))).
+
+let TUAVb =
+  in(c, (=idA, tk: bitstring, E: G, t: bitstring));
+  let (id: bitstring, hk: key, N: bitstring) = sdec(tk, Kab) in
+  if t = mac((tk, E), hk) then
+  get usedN(=N) in 0 else
+  insert usedN(N);
+  event tuavBAccept(id, E);
+  new eb: exponent;
+  let Eb = exp(g, eb) in
+  let K2 = kdf2(hk, k2b(kdf(exp(E, eb), id))) in
+  out(c, (Eb, senc(gkB, K2))).
+
+process
+  ( (!Member) | (!TUAVb) )

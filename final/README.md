@@ -15,6 +15,15 @@ infrastructure-less IoV, building on Tan, Zheng & Vijayakumar (IEEE T-ITS 24(6),
 | `report/` | Final report (LaTeX, chapters) |
 | `paper/` | Research paper (IEEE conference format) |
 
+## Hardened design and C4 (local additions)
+
+`cutcord/ours.py` is the first design, kept unchanged so E0–E7 stay reproducible. `cutcord/hardened.py` fixes
+six flaws found in it and adds C4, quorum eviction of a captured TUAV. `tests/test_hardened.py` runs each attack
+against both designs. `experiments/run_e8.py` writes `results/e8_*`, `figures/f7_containment.*`.
+
+`proverif/c3_captured_ticket_only.pv` and `proverif/c3_captured_bound.pv` model a captured TUAV.
+**They have not been run yet**, so no result from them is quoted anywhere.
+
 ## Reproduce
 
 Run everything from this folder.

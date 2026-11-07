@@ -1,0 +1,3 @@
+design,n,admitted,evicted,clean_ms,spoofed_ms
+first,60,0,60,368.5,953.9
+hardened,60,60,0,363.5,1427.4

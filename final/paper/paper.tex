@@ -11,6 +11,13 @@
 \graphicspath{{../figures/}}
 \renewcommand{\ttdefault}{cmtt}
 \input{../results/macros.tex}
+\input{../results/e8_macros.tex}
+% TODO before submission:
+%  - replace "Team 6" with real affiliations and contact e-mail
+%  - disclose AI assistance as the venue requires (IEEE: in the acknowledgments)
+%  - run proverif/c3_captured_*.pv; only then add their results to Table I and Sec. VI
+%  - read xia23 in full and confirm the comparison in Related Work
+%  - check every quotation of [base] against the published PDF
 
 \definecolor{deep}{HTML}{0B3954}\definecolor{uavc}{HTML}{087E8B}\definecolor{vehc}{HTML}{6A4C93}
 \definecolor{hoc}{HTML}{E07A1F}\definecolor{bad}{HTML}{C81D25}\definecolor{good}{HTML}{2A9D3F}
@@ -50,13 +57,16 @@ The CRT-based group key reveals every member's decrypting key to every other mem
 TA's pairings and an $O(n^3)$-byte key broadcast. We confirm these findings in code and, for the escrow attack, with ProVerif. We then propose
 \emph{Cutting the Cord}, which moves the trust root offline. The TUAV authenticates UAVs itself with escrow-free, pairing-free certificateless signatures in a
 sound batch with a bounded fallback. It delivers the group key per member under fresh ECDH keys, admits vehicles through authenticated UAV relays, and hands
-members between TUAVs with single-use tickets. ProVerif verifies authentication, key secrecy, forward secrecy and revocation, and delimits the residual TA power
-to Girault level~2. On the same curve and library, the base scheme's TA-inclusive cost is about \RSpeedup$\times$ ours, our scheme needs no satellite traffic, and it
-sends \RBytesRatio$\times$ less key traffic.
+members between TUAVs with single-use tickets. Removing the authority creates a problem of its own: nobody online can overrule a forged packet or a captured edge
+node. We demonstrate this with \EAttacksVOne\ executed attacks on our own first design, including one forged packet that locks a UAV out for an epoch and a captured
+TUAV that reads every neighbouring cell's group key. We fix them and add a containment tier in which a quorum of TUAVs evicts a captured peer with the TA offline. On
+a \EBlastCells-cell grid, one captured TUAV then exposes \EBlastHardOne\% of cells instead of \EBlastFirstOne\%. Symbolic ProVerif models of the core protocols verify
+authentication, key secrecy, forward secrecy and revocation, and delimit the residual TA power to Girault level~2. On the same curve and library, the base scheme's
+TA-inclusive cost is about \RSpeedup$\times$ ours, our scheme needs no satellite traffic, and it sends \RBytesRatio$\times$ less key traffic.
 \end{abstract}
 
 \begin{IEEEkeywords}
-Internet of Vehicles, tethered UAV, certificateless signatures, batch verification, group key management, ProVerif.
+Internet of Vehicles, tethered UAV, certificateless signatures, batch verification, group key management, node capture, revocation, ProVerif.
 \end{IEEEkeywords}
 
 % =====================================================================
@@ -70,11 +80,16 @@ We examined the scheme equation by equation, implemented it on BN254, and modell
 The TUAV cannot verify anyone without a satellite round trip to the TA (so authentication stops when the link fails). The TA can impersonate every UAV. A
 revoked UAV keeps receiving group keys. The efficiency figures omit the dominant cost.
 
+Fixing this by taking the authority out of the field is not free. A cloud TA, for all its faults, could overrule a false report and refuse a stolen device. With the TA
+offline, a captured TUAV and a forged packet face no such check, and a design that ignores this fails in new ways. Our own first design did.
+
 \textbf{Contributions.} (1) Six findings against~\cite{base}, four reproduced in code and one found automatically by ProVerif (Sec.~\ref{sec:findings}).
-(2) \emph{Cutting the Cord}: a framework with an offline trust root and three tiers. C1 is autonomous, escrow-free UAV authentication with secure rekeying. C2
-admits vehicles through UAV relays. C3 is ticket-based handover between TUAVs (Sec.~\ref{sec:design}). (3) Security arguments and five ProVerif models with
-sixteen queries, which pin down the residual TA power precisely (Sec.~\ref{sec:security}). (4) An implementation of both schemes on one curve and library, with
-eight experiments (Sec.~\ref{sec:eval}).
+(2) \emph{Cutting the Cord}: a framework with an offline trust root and four tiers. C1 is autonomous, escrow-free UAV authentication with secure rekeying. C2
+admits vehicles through UAV relays. C3 is signature-bound, ticket-based handover between TUAVs. C4 evicts a captured TUAV by quorum (Sec.~\ref{sec:design}).
+(3) A compromise analysis of authority-independent admission: \EAttacksVOne\ executed attacks on our first design, their fixes, and the rule behind them: with no
+authority online, any state change that outlives a window must rest on evidence a third party can check (Sec.~\ref{sec:contain}). (4) Security arguments and five
+ProVerif models with sixteen queries, which pin down the residual TA power precisely (Sec.~\ref{sec:security}). (5) An implementation of both schemes on one curve and
+library, with nine experiments, including the blast radius of captured TUAVs and the measured cost of containing them (Sec.~\ref{sec:eval}).
 
 % =====================================================================
 \section{Background and the Base Scheme}\label{sec:base}
@@ -95,6 +110,21 @@ checks one product equation. In GD1--GD6 the TUAV publishes the coefficients of
 \end{equation}
 with $\omega_i=\prod_{j\ne i}\sigma_j$ and $\varphi_i\equiv\omega_i^{-1}\bmod\sigma_i$. Each UAV recovers $\kappa_{tu}=\Lambda(\sigma_i)\bmod\sigma_i$. In DU1 the
 polynomial is rebuilt over the remaining members' \emph{unchanged} $\sigma_i$.
+
+% =====================================================================
+\section{Related Work}\label{sec:related}
+\textbf{Drone-assisted vehicular security.} Recent schemes pursue lightweight authentication for UAV-assisted vehicular networks~\cite{kumar26,ahmed26} and batch
+authentication with tree-based key agreement for UAV swarms~\cite{cubat}. Swarm group authentication has also been built on threshold secret sharing~\cite{aydin}. We
+found no published cryptanalysis of~\cite{base}, and no scheme that combines an offline authority with containment of a captured edge node for this setting.
+% TODO: confirm the "no published cryptanalysis" claim with a Scholar / IEEE Xplore citation search of [base] before submission.
+
+\textbf{CRT group keys.} Secure locks~\cite{securelock} deliver one key to many recipients through CRT, and Vijayakumar \textit{et al.}~\cite{vijay14} reduced the
+server's rekeying cost. Xia \textit{et al.}~\cite{xia23} report that in~\cite{vijay14} a former member may still obtain the group key and colluding members may recover
+another member's long-term key. Our finding F4 belongs to the same class of failure. It targets the polynomial construction of~\cite{base} and needs one insider and no
+collusion. Newer CRT-based protocols pack per-member ciphertexts into one broadcast integer~\cite{pug}, a different construction that F4 does not address.
+
+\textbf{Revocation without an authority.} Chan \textit{et al.}~\cite{chan05} revoke compromised sensor nodes by neighbours' votes. C4 applies the quorum idea to TUAVs,
+using certificateless signatures so that any member can check an eviction with the TA's public key alone.
 
 % =====================================================================
 \section{Analysis of the Base Scheme}\label{sec:findings}
@@ -133,35 +163,45 @@ All six share one root cause: \emph{the TA is inside every operation}.
 The attacker is Dolev--Yao on all links, plus Type-I (key-replacing outsider) and Type-II (malicious TA) certificateless adversaries, insiders, and batch poisoners.
 
 \textbf{Setup and registration (offline).} The TA holds $s$ ($\Ppub=sP$) to certify keys and $t$ ($\Tpub=tP$) to trace pseudonyms. For each epoch $\ep$ an
-entity picks $x$, sends $X=xP$ with a proof of possession, and receives $\PID=(\rho P,\RID\oplus H_0(\rho\Tpub\cat\ep))$, $Y=yP$ and
-$d=y+sh$, where $h=H_1(\PID,\ep,X,Y)$. The full key is $\sk=x+d$ and $\pk=X+Y+h\Ppub=\sk P$. The TA knows $d$ but never $x$.
+entity picks $x$, sends $X=xP$ with a proof of possession, and receives $\PID=(\rho P,\RID\oplus H_0(\rho\Tpub\cat\ep),\mathit{role})$, $Y=yP$ and
+$d=y+sh$, where $h=H_1(\PID,\ep,X,Y)$. The full key is $\sk=x+d$ and $\pk=X+Y+h\Ppub=\sk P$. The TA knows $d$ but never $x$. Epochs start at 1; TUAV credentials use
+$\ep=0$, so the two kinds cannot stand in for each other.
 
 \textbf{C1, UAV tier.} The TUAV broadcasts a signed beacon carrying a fresh $E_a=e_aP$. A UAV signs $m_i=(\texttt{join}\cat ID_a\cat E_a\cat E_i)$ with a
-Schnorr-type signature $(R_i,v_i)$, $v_i=r_i+c_i\sk_i$ for challenge $c_i$, and sends $\langle\PID_i,\ep,X_i,Y_i,E_i,ts_i,R_i,v_i\rangle$. The TUAV filters the requests
-(freshness, epoch, eviction list, one per pseudonym) and checks, with random 64-bit $\lambda_i$,
+Schnorr-type signature $(R_i,v_i)$, $v_i=r_i+c_i\sk_i$ for challenge $c_i$, and sends $\langle\PID_i,\ep,X_i,Y_i,E_i,ts_i,R_i,v_i\rangle$, signing at most once per beacon.
+The TUAV filters the requests (freshness, epoch, eviction list, role), keeps at most $c=2$ distinct requests per pseudonym, sampled uniformly from those received, verifies
+contested pseudonyms individually, and checks the rest, with random 64-bit $\lambda_i$,
 \begin{multline}
-\Big(\sum\lambda_iv_i\Big)P=\sum\lambda_iR_i\
+\Big(\sum\lambda_iv_i\Big)P=\sum\lambda_iR_i\\
 +\sum(\lambda_ic_i)(X_i+Y_i)+\Big(\sum\lambda_ic_ih_i\Big)\Ppub.\label{eq:bv}
 \end{multline}
-If the check fails, the TUAV verifies each request, admits the valid ones, evicts the bad pseudonyms for the epoch, and stays in individual mode until
-windows are clean. It then derives $K_i=\KDF(e_aE_i\cat\dots)$ and broadcasts one ACK with $\Enc(K_i,\GK_a\cat\nu)$ for each member. Rekeying draws a fresh
-$\GK'_a$ and encrypts it only under the remaining $K_i$; LKH~\cite{lkh} reduces a single leave to $2\lceil\log_2 n\rceil-1$ ciphertexts.
+If the check fails, the TUAV verifies each request, admits the valid ones, and stays in individual mode until windows are clean. A failed signature evicts nobody
+(Sec.~\ref{sec:contain}). The TUAV then derives $K_i=\KDF(e_aE_i\cat\dots)$ and broadcasts one ACK with $\Enc(K_i,\GK_a\cat\nu)$ for each member. Whenever members join or
+leave, at most once per window, rekeying draws a fresh $\GK'_a$ and encrypts it only under the $K_i$ of those who should hold it; members accept only increasing $\nu$.
+LKH~\cite{lkh} reduces a single leave to $2\lceil\log_2 n\rceil-1$ ciphertexts.
 
-\textbf{C2, vehicle tier.} Vehicles hold the same credentials. A UAV relays their signed requests in a bundle authenticated by $\MAC(K_i,\cdot)$, so the TUAV
+\textbf{C2, vehicle tier.} Vehicles hold the same kind of credential, and the certified role stops them from claiming the UAV tier. A UAV relays their signed requests in a bundle authenticated by $\MAC(K_i,\cdot)$, so the TUAV
 discards bundles from non-members before any signature work. Valid vehicles receive a separate regional key $\VK_a$. Routine V2V beacons carry a MAC under
 $\VK_a$; safety-critical events are signed.
 
-\textbf{C3, handover.} Neighbouring TUAVs agree a link key $K_{ab}$ by signed ECDH and share eviction lists. Before a member $\mathcal M$ leaves, $\mathcal T_a$
-gives it a ticket $\Enc(K_{ab},\PID\cat\pk\cat hk\cat N\cat exp)$, where $hk=\KDF(K_\mathcal M\cat\dots)$. $\mathcal T_b$ opens the ticket, rejects reused $N$,
-verifies a MAC under $hk$, runs one fresh ECDH, and sends its group key. No signature is verified, and $\mathcal T_b$ never learns $K_\mathcal M$.
+\textbf{C3, handover.} Neighbouring TUAVs agree a link key $K_{ab}$ by signed ECDH. Before a member $\mathcal M$ leaves, $\mathcal T_a$
+gives it a ticket $\Enc(K_{ab},\PID\cat\pk\cat hk\cat N\cat exp)$, where $hk=\KDF(K_\mathcal M\cat\dots)$. With a fresh $E$, $\mathcal M$ signs
+$(ID_a\cat ID_b\cat H(\text{ticket})\cat E)$. $\mathcal T_b$ opens the ticket, rejects reused $N$, verifies a MAC under $hk$ and that signature, runs one fresh ECDH, rekeys
+its cell, and sends the new group key. $\mathcal T_a$ rekeys once $\mathcal M$ has left. $\mathcal T_b$ never learns $K_\mathcal M$. The ticket spares the member the wait
+for a beacon and the check of its signature; it no longer vouches for the member on its own.
 
-\textbf{Tracing and revocation.} Offline, the TA recovers $\RID=\PID^2\oplus H_0(t\PID^1\cat\ep)$ and can publish the remaining pseudonyms of a revoked entity.
-TUAVs evict immediately and locally, so nothing waits for the TA.
+\textbf{C4, containment.} A TUAV that learns of a peer's capture signs $(\texttt{evict-tuav}\cat ID_x)$ under its $\ep=0$ credential. How it learns (tamper sensor, lost
+tether, crew report) is outside the protocol. Votes from $t$ distinct other TUAVs form a certificate that anyone checks with $\Ppub$ alone, as a batch. TUAVs holding it
+drop $K_{ax}$ and refuse $\mathcal T_x$'s tickets; members holding it refuse $\mathcal T_x$'s beacons.
+
+\textbf{Tracing and revocation.} Offline, the TA recovers $\RID=\PID^2\oplus H_0(t\PID^1\cat\ep)$ and can sign a list of the remaining pseudonyms of a revoked entity.
+A TUAV may evict locally on an operator's decision, but neighbours accept an eviction only with a TA-signed list or with evidence: two valid signatures by one
+pseudonym under one beacon, which an honest member never produces. Nothing waits for the TA.
 
 % =====================================================================
 \section{Security Analysis}\label{sec:security}
 \begin{proposition}
-No step of C1--C3 sends to or waits for the TA; verification needs only $\Ppub$.
+No step of C1--C4 sends to or waits for the TA; verification needs only $\Ppub$.
 \end{proposition}
 \begin{theorem}[Unforgeability]
 Under ECDLP in the ROM, no Type-I or Type-II adversary forges a signature under an honest entity's registered key.
@@ -171,24 +211,68 @@ Type~II: embed the challenge in $X^*$; forking on $H_2$ yields $\sk^*$, hence $x
 on $H_1$ yields $(\sk^*-\sk^{*\prime})/(h^*-h^{*\prime})$~\cite{forking}. Unlike~\cite{base}, the challenge is never a public value.
 \end{proof}
 \begin{theorem}[Batch soundness~\cite{bgr}]
-If any request is invalid, (\ref{eq:bv}) holds with probability at most $2^{-64}$.
+If any request is invalid, (\ref{eq:bv}) holds with probability at most $2^{-63}$ (the weights are odd, leaving 63 free bits).
 \end{theorem}
 \begin{theorem}[Keys]
 Under CDH and AEAD security, $K_i$ is known only to $\mathcal T_a$ and $\mathcal U_i$. Session keys survive later compromise of all long-term keys. A removed
 member cannot obtain $\GK'_a$, and a joiner cannot obtain earlier keys.
 \end{theorem}
 \begin{proposition}[Bounded poisoning]
-With $d\ge1$ invalid requests, a window costs at most $T_{BV}(n)+nT_{SV}$, and every valid request is admitted.
+Over $n$ pseudonyms, a window costs at most $T_{BV}(n)+cnT_{SV}$, and a failed signature changes no state beyond the window. A pseudonym that no forged request names is
+always admitted. One named by $k$ forged requests is admitted with probability $\min(1,c/(k+1))$ per window.
 \end{proposition}
+\begin{proof}[Sketch]
+Reservoir sampling keeps each of the $k+1$ requests with equal probability, and a kept valid request is verified individually.
+\end{proof}
+\begin{proposition}[Containment]\label{prop:contain}
+Under Theorem~1, a set $\mathcal C$ of captured TUAVs holding no member credential obtains no group key of a cell outside $\mathcal C$. It cannot replace the pairwise key of a
+registered member at an honest TUAV, cannot add an honest member to an honest TUAV's eviction list, and, if $|\mathcal C|<t$, cannot evict an honest TUAV.
+\end{proposition}
+\begin{proof}[Sketch]
+Each outcome needs a forgery. Handover admission needs a fresh signature bound to the ticket, the destination and $E$, under a key the TA certified at $\ep\ge1$; the TUAV's
+own key is certified at $\ep=0$. Evidence needs two signatures under one beacon, and an honest member signs once. An eviction needs $t$ distinct $\ep=0$ signatures.
+\end{proof}
+
+\subsection{Pitfalls of removing the authority}\label{sec:contain}
+Reviewing our first design adversarially, we found the attacks in Table~\ref{tab:attacks}. All were executed against its implementation. A1--A4 are design flaws. A5 and A6 are
+gaps between its specification and its code, which its tests did not cover.
+
+A1 deserves attention because the design looked safe. It evicted a pseudonym whose signature failed, as a defence against poisoning. But pseudonyms travel in the clear and stay
+valid for a whole epoch, and a failed signature proves nothing about the pseudonym it names. Any outsider who has heard a UAV once could evict it with one packet, and eviction
+sharing spread the damage to neighbouring cells. A2 and A3 follow the same pattern. A ticket let $\mathcal T_b$ skip the member's signature, so whoever held $K_{ab}$ could
+admit anyone, and neighbours took eviction lists on trust. We had described a captured TUAV as exposing its own cell; through the link keys it exposed every neighbour.
+
+The common rule: \emph{with no authority online, any state change that outlives a window must rest on evidence a third party can check.} A failed signature is not such evidence, and
+neither is a neighbour's word.
+
+\begin{table}[t]
+\centering\scriptsize
+\caption{Attacks on our first design (E8a). All succeed there and fail after the fix.}
+\label{tab:attacks}
+\begin{tabular}{@{}lp{3.55cm}p{3.0cm}@{}}
+\toprule
+\# & Attack & Fix\\
+\midrule
+A1 & One forged request naming a victim evicts it for the epoch; eviction spreads & A failure evicts nobody; sample $c$ per pseudonym\\
+A2 & Captured TUAV mints tickets: reads a neighbour's group key, replaces a member's pairwise key & Member signs each handover\\
+A3 & Captured TUAV sends a false eviction list & Merge only evidence or TA-signed lists\\
+A4 & Vehicle credential claims the UAV role and gets $\GK_a$ & Certify the role in $\PID$\\
+A5 & Replayed rekey restores a key a removed member holds & Versions only increase\\
+A6 & Joiner receives the key already in use & Rekey on arrival, once per window\\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \textbf{ProVerif}~\cite{proverif}\textbf{.} Table~\ref{tab:pv} lists the sixteen queries. Q7 and Q9 fail \emph{as predicted}. A malicious TA can still issue a second key for a pseudonym,
 or enrol a phantom member and receive the group key. This is inherent to certificateless schemes and detectable. Q6 and Q8 show that it cannot sign under the
 registered key or read pairwise traffic. Q12 holds only non-injectively, because ProVerif's table lookup and insert are not atomic. Our TUAV processes
-handovers sequentially, and a replayed ticket still yields no key (Q13--Q15).
+handovers sequentially, and a replayed ticket still yields no key (Q13--Q15). The handover queries model tickets with $K_{ab}$ secret and without the member's signature, so they
+did not and could not reveal A2, which needs a captured $\mathcal T_a$.
+% TODO: run proverif/c3_captured_ticket_only.pv and c3_captured_bound.pv, then report them here. They have NOT been run.
 
 \begin{table}[t]
 \centering\scriptsize
-\caption{ProVerif~2.05 results (all as predicted).}
+\caption{ProVerif~2.05 results. Q7 and Q9 fail as predicted; Q12 is weaker than the injective agreement we wanted.}
 \label{tab:pv}
 \begin{tabular}{@{}lll@{}}
 \toprule
@@ -213,7 +297,9 @@ Q16 & \textbf{base scheme}: acceptance $\Rightarrow$ UAV sent & \no\ attack\\
 \textbf{Setup.} Both schemes run on BN254 with \texttt{py\_ecc} (pure Python) and \texttt{cryptography}, in one process on one laptop. The base scheme's symmetric
 pairing is realised by placing the argument the TA can compute in $\mathbb G_2$. For each $n$ the two schemes run back to back. Because the laptop's speed drifted during the day, we also report a load-independent
 ratio from the exact operation counts recorded by the code. Here a pairing costs about \RPairRatio\ scalar
-multiplications, against about 8 with MIRACL. Twenty tests pass, covering correctness and every attack.
+multiplications, against about 8 with MIRACL. BN254 gives roughly 100-bit security today, so a deployment would use a 128-bit curve; we use it for one curve across both
+schemes. Fifty-four tests pass, covering correctness and every attack on both designs. E1--E6 measure the first design. E8 runs both designs side by side and reports the
+cost of the fixes, and its absolute times reflect a different machine state from E1--E6, so we compare within each experiment only.
 
 \begin{figure}[t]
 \centering\includegraphics[width=\linewidth]{f2_latency}
@@ -224,7 +310,10 @@ multiplications, against about 8 with MIRACL. Twenty tests pass, covering correc
 \textbf{Latency (E2).} For $n=\RNmax$ our TUAV authenticates and keys the swarm in \ROursTotalS\,s; the base scheme needs \RBaseTotalS\,s before any
 satellite delay, and its TUAV-only part (the part~\cite{base} reports) is \RBaseTuavShare\% of that. By operation count the base scheme does
 \RCountRatioLo--\RCountRatioHi$\times$ more work at every $n$; measured ratios ($n\le100$) are \RMeasRatioLo--\RMeasRatioHi$\times$. With the base paper's MIRACL constants the
-figures are 228\,ms against 3720\,ms plus RTT (Fig.~\ref{fig:e2}).
+figures are 228\,ms against 3720\,ms plus RTT, about $16\times$ (Fig.~\ref{fig:e2}).
+
+\textbf{Where the work falls.} Total work is not the drone's work. At $n=\RNmax$ the base scheme's TUAV spends about 3.25\,s (GA3 and GD, from single runs), roughly half of
+our \ROursTotalS\,s. We do not lighten the TUAV. We remove the TA's pairings and the satellite trip, and move verification onto a device that the tether powers.
 
 \textbf{Availability (E1).} The base scheme succeeds in a fraction $A$ of rounds; with three retries at $A=50\%$ it reaches \RAvailIidHalfThree\% under independent
 losses but only \RAvailBurstHalfThree\% under bursty outages. Ours does not use the link.
@@ -235,7 +324,7 @@ losses but only \RAvailBurstHalfThree\% under bursty outages. Ours does not use 
 \label{fig:e3}
 \end{figure}
 
-\textbf{Poisoning (E3).} One invalid request blocks every honest UAV in the base scheme. Ours admits all honest UAVs at every attack rate, with the cost bounded
+\textbf{Poisoning (E3).} One invalid request blocks every honest UAV in the base scheme. Ours admits every UAV whose own request is intact, at every attack rate (E8 covers forged requests that name an honest pseudonym), with the cost bounded
 by a failed batch plus individual checks (\RPoisonClean\,s clean, \RPoisonWorst\,s worst). Split-and-retest~\cite{zaverucha} brings no gain because pairing-free
 batching is only a few times cheaper per signature (Fig.~\ref{fig:e3}).
 
@@ -244,18 +333,48 @@ satellite link. Our single ACK is \RBytesOursKey\,KB (\RBytesRatio$\times$ less)
 
 \textbf{Vehicles and handover (E5, E6).} A bundle of \RVehN\ vehicles is admitted, including keys, in \RVehBatchS\,s, and non-member bundles are dropped in
 microseconds. A ticket handover costs the new TUAV \RHoTuavTicket\,ms instead of \RHoTuavFull\,ms. Over a one-hour mobility run with \RHoCross\ cell crossings,
-the mean service gap falls from \RHoGapFull\,ms to \RHoGapTicket\,ms.
+the mean service gap falls from \RHoGapFull\,ms to \RHoGapTicket\,ms. Of that gap, 500\,ms is the assumed mean wait for the next beacon (1\,s period), not a measurement.
+
+\begin{figure*}[t]
+\centering\includegraphics[width=0.82\textwidth]{f7_containment}
+\caption{E8. Left: cells whose group key one to \EBlastCapMax\ captured TUAVs can read (\EBlastCells-cell grid, mean of \EBlastTrials\ random placements, attacks executed). Right: chance
+that a victim is admitted within five 1\,s windows while forged requests name it, over \ELockTrials\ trials. The first design's line assumes one forged request arrives ahead of the victim's.}
+\label{fig:e8}
+\end{figure*}
+
+\textbf{Attacks (E8a).} All \EAttacksVOne\ attack variants succeed on the first design and \EAttacksVTwo\ of \EAttackTotal\ succeed on the hardened design.
+
+\textbf{Lockout (E8b).} On the first design, one forged request locks a victim out for the rest of the epoch. On the hardened design it costs nothing lasting. With 4 forged requests per
+window the victim is admitted in the first window \ELockFourFirst\% of the time (predicted 40\%) and within five windows \ELockFourFive\% of the time; with 32 it still gets in within
+five windows \ELockThirtyTwoFive\% of the time (predicted 26.8\%; the standard error is at most 3.5 points over \ELockTrials\ trials). Holding a victim below 50\% over five windows takes about 15 forged requests in every window, instead of one packet in a
+15-minute epoch. That is close to jamming, which no protocol prevents. When every pseudonym in a swarm of \ESwarmN\ is spoofed once, the first design admits \ESwarmFirst\ and evicts
+\ESwarmEvictedFirst; the hardened design admits \ESwarmHard\ and evicts none, at \ESwarmSpoofS\,s against \ESwarmCleanS\,s for a clean window (\ESwarmCostRatio$\times$), as Proposition~2 bounds.
+
+\textbf{Blast radius (E8c).} On a \EBlastCells-cell grid, one captured TUAV exposes \EBlastFirstOne\% of cells on the first design and \EBlastHardOne\% (its own) on the hardened design; \EBlastCapMax\
+captured TUAVs expose \EBlastFirstMax\% and \EBlastHardMax\% (Fig.~\ref{fig:e8}). With \EBlastCapMax\ captured, the first design also lets them displace \EBlastDispFirst\ members and frame \EBlastFrameFirst\ on
+average, one attempted per neighbouring cell for each attack; the hardened design allows \EBlastDispHard\ and \EBlastFrameHard.
+
+\textbf{Cost of the fixes (E8d).} Containment is not free, and it removes C3's main computational saving. In a \EHoCell-member cell the new TUAV spends \EHoTuavHard\,ms on a signature-bound
+ticket, against \EHoTuavFirst\,ms for a ticket alone and \EHoTuavFull\,ms for full re-admission, because it verifies a signature, does a fresh ECDH and rekeys the cell. The
+first design's saving at the new TUAV was the price of trusting the neighbour. The member still gains: \EHoMemHard\,ms against \EHoMemFull\,ms. The computation in one handover is \EHoGapHard\,ms against
+\EHoGapFull\,ms, or \EHoGapFullWait\,ms with the assumed beacon wait. Each crossing also adds \EHoSigBytes\,B for the signature and \EHoRekeyBytes\,B per \EHoCell-member cell rekeyed, and the old cell's rekey takes \EHoDepart\,ms. With half of
+\EJoinN\ UAVs arriving, key delivery takes \EJoinHardMs\,ms against \EJoinFirstMs\,ms, and sends \EJoinHardB\,B against \EJoinFirstB\,B. An eviction certificate is \ECertTwoB\,B and \ECertTwoMs\,ms to check at $t=2$, and \ECertFiveB\,B and
+\ECertFiveMs\,ms at $t=5$.
 
 % =====================================================================
 \section{Limitations}
-A malicious TA keeps Girault level-2 power (detectable key replacement and phantom enrolment). A captured TUAV exposes its own cell's keys until it is
-evicted. Pseudonyms are linkable within an epoch. Requests are larger. Our timings come from a pure-Python library on a laptop, and network effects are
-simulated. Threshold TUAV trust, manufacturer-bound keys (level~3) and an embedded constant-time implementation are future work.
+A malicious TA keeps Girault level-2 power (detectable key replacement and phantom enrolment). A captured TUAV still exposes its own cell's keys, can impersonate a neighbour to its
+own departing members, and can run a rogue cell, until it is evicted. C4 assumes that someone detects the capture, that $t$ honest TUAVs can reach each other, and that fewer than $t$ are
+captured; $t$ or more captured TUAVs can evict honest ones. We provide no way to restore an evicted TUAV without the TA. An outsider can still flood a window with fresh pseudonyms, and a TUAV needs a
+verification budget against this, which we do not evaluate. Members arriving within one window share that window's fresh key. Pseudonyms are linkable within an epoch. Requests are larger. Our timings come from a pure-Python library on a laptop whose speed drifted,
+network effects are simulated, and the security arguments are sketches with symbolic models. The ProVerif models do not yet cover the signature-bound handover or C4. An embedded constant-time implementation, a
+computational proof of containment, and manufacturer-bound keys (level~3) are future work.
 
 \section{Conclusion}
 The TUAV architecture of~\cite{base} is a good answer to infrastructure loss, but its protocol keeps the cloud authority inside every step. Moving the trust
 root offline restores infrastructure independence, escrow-freeness, forward secrecy and secure revocation together, reduces total work and traffic, and
-extends naturally to vehicles and to multi-TUAV handover.
+extends naturally to vehicles and to multi-TUAV handover. It also removes the party that could overrule a forgery or disown a stolen device, and our own first design shows what follows.
+Requiring checkable evidence for every lasting state change contains a captured TUAV to its own cell, at the measured cost of the handover's CPU saving at the new TUAV.
 
 \begin{thebibliography}{10}
 \bibitem{base} H.~Tan, W.~Zheng and P.~Vijayakumar, ``Secure and efficient authenticated key management scheme for UAV-assisted infrastructure-less IoVs,''
@@ -271,6 +390,14 @@ extends naturally to vehicles and to multi-TUAV handover.
   pp.~361--396, 2000.
 \bibitem{proverif} B.~Blanchet, ``Modeling and verifying security protocols with the applied pi calculus and ProVerif,'' \emph{Found. Trends Priv. Secur.},
   vol.~1, no.~1--2, pp.~1--135, 2016.
+\bibitem{vijay14} P.~Vijayakumar, S.~Bose and A.~Kannan, ``Chinese remainder theorem based centralised group key management for secure multicast communication,'' \emph{IET Inf. Secur.}, vol.~8, no.~3, pp.~179--187, 2014.
+\bibitem{xia23} Z.~Xia, Y.~Yang and F.~Miao, ``Comments on `Chinese remainder theorem-based centralised group key management for secure multicast communication','' \emph{IET Inf. Secur.}, vol.~17, no.~2, pp.~309--314, 2023.
+\bibitem{chan05} H.~Chan, V.~D.~Gligor, A.~Perrig and G.~Muralidharan, ``On the distribution and revocation of cryptographic keys in sensor networks,'' \emph{IEEE Trans. Dependable Secure Comput.}, vol.~2, no.~3, pp.~233--247, 2005.
+\bibitem{aydin} Y.~Aydin, G.~Karabulut Kurt, E.~Ozdemir and H.~Yanikomeroglu, ``Group authentication for drone swarms,'' in \emph{Proc. IEEE WiSEE}, 2021, pp.~72--77.
+\bibitem{cubat} C.~Sun, J.~Zhang and X.~Li, ``CUBAT-AKA: Collaborative UAV batch authentication and tree-based key agreement,'' \emph{Electronics}, vol.~15, no.~12, art.~2553, 2026.
+\bibitem{kumar26} S.~Kumar \textit{et al.}, ``An ultralightweight and reliable authentication protocol for secure communication in UAV-assisted IoAV systems,'' \emph{Comput. Electr. Eng.}, vol.~132, art.~110998, 2026.
+\bibitem{ahmed26} W.~Ahmed, ``Lightweight and privacy-enhanced authentication and key agreement scheme for secure V2I communication in drone-assisted internet of vehicles,'' \emph{J. Supercomput.}, vol.~82, no.~6, art.~380, 2026.
+\bibitem{pug} T.~U.~Alam and M.~Younis, ``PUG: A PUF-anchored unified group key management protocol for Internet of Drones,'' \emph{Future Internet}, vol.~18, no.~10, art.~529, 2026.
 \end{thebibliography}
 
 \end{document}

@@ -1,0 +1,8 @@
+attack,first_design_succeeds,hardened_succeeds
+A1 one forged packet locks a UAV out,True,False
+A2 captured TUAV reads a neighbour's group key,True,False
+A2' captured TUAV displaces an honest member,True,False
+A3 captured TUAV frames a member at a neighbour,True,False
+A4 vehicle credential obtains the UAV key,True,False
+A5 replayed rekey restores a key a removed member holds,True,False
+A6 joiner receives the key already in use,True,False
