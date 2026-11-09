@@ -19,3 +19,18 @@ RESULT not attacker(gkB[]) is true.
 RESULT not attacker_p1(payload[]) is true.
 == base_escrow.pv
 RESULT event(tuavAccepts(idU[],xi_2)) ==> event(uavSent(idU[],xi_2)) is false.
+== c3_captured_ticket_only.pv
+RESULT event(tuavBAccept(idM[],e_1)) ==> event(memberStart(idM[],e_1)) is false.
+RESULT not attacker(gkB[]) is false.
+== c3_captured_noreplysig.pv
+RESULT event(tuavBAccept(idM[],pubx(xM[]),e_1)) ==> event(memberStart(idM[],e_1)) is true.
+RESULT event(tuavBAccept(id_1,X_1,e_1)) ==> event(memberStart(id_1,e_1)) is true.
+RESULT event(memberDone(idM[],e_1,eb_1)) ==> event(tuavBSent(idM[],e_1,eb_1)) is false.
+RESULT not attacker(gkB[]) is true.
+RESULT not attacker_p1(payload[]) is false.
+== c3_captured_bound.pv
+RESULT event(tuavBAccept(idM[],pubx(xM[]),e_1)) ==> event(memberStart(idM[],e_1)) is true.
+RESULT event(tuavBAccept(id_1,X_1,e_1)) ==> event(memberStart(id_1,e_1)) is true.
+RESULT event(memberDone(idM[],e_1,eb_1)) ==> event(tuavBSent(idM[],e_1,eb_1)) is true.
+RESULT not attacker(gkB[]) is true.
+RESULT not attacker_p1(payload[]) is true.

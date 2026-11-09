@@ -1,12 +1,16 @@
 (* Hardened C3 with TUAV a captured: the attacker holds K_ab, K_M and a's own credential.
-   TUAV b also requires the member's signature over (tk, E) under a key the TA certified.
-   Expected: acceptance implies the member started this handover, the neighbour's group key
-   stays secret, and session data survives a later leak of the member's long-term key.
+   TUAV b also requires the member's signature over (tk, E) under a key the TA certified, and
+   (fix A7) signs its reply under its own TUAV credential, which the member checks.
+   Expected: both sides authenticate each other, the neighbour's group key stays secret, and
+   session data survives a later leak of the member's long-term key.
+   Without A7 the member-side queries fail: the captured TUAV knows K_M, hence hk, and can
+   answer the member in b's name (see c3_captured_noreplysig.pv).
    Run:  proverif -lib common c3_captured_bound.pv *)
 
 free s: master [private].
 free xM: secretv [private].
 free xA: secretv.              (* the captured TUAV's secret value *)
+free xB: secretv [private].    (* the honest new TUAV's secret value *)
 free KM: key.
 free Kab: key.
 free idM: bitstring.
@@ -40,7 +44,8 @@ let Member =
   event memberStart(idM, E);
   out(c, (idA, tk, E, mac((tk, E), hk),
           clsign((idA, idB, tk, E), xM, partial(s, (memberTag(idM), pubx(xM))))));
-  in(c, (Eb: G, ct: bitstring));
+  in(c, (Eb: G, ct: bitstring, sigB: bitstring));
+  if clcheck(sigB, (idA, idB, tk, E, Eb), (tuavTag(idB), pubx(xB)), pubx(xB), pubm(s)) = true then
   let K2 = kdf2(hk, k2b(kdf(exp(Eb, e), idM))) in
   let gk = sdec(ct, K2) in
   event memberDone(idM, E, Eb);
@@ -58,10 +63,10 @@ let TUAVb =
   let Eb = exp(g, eb) in
   let K2 = kdf2(hk, k2b(kdf(exp(E, eb), id))) in
   event tuavBSent(id, E, Eb);
-  out(c, (Eb, senc(gkB, K2))).
+  out(c, (Eb, senc(gkB, K2), clsign((idA, idB, tk, E, Eb), xB, partial(s, (tuavTag(idB), pubx(xB)))))).
 
 process
-  out(c, pubm(s)); out(c, pubx(xM));
+  out(c, pubm(s)); out(c, pubx(xM)); out(c, pubx(xB));
   out(c, partial(s, (tuavTag(idA), pubx(xA))));
   ( (!Member) | (!TUAVb)
   | phase 1; out(c, xM) )

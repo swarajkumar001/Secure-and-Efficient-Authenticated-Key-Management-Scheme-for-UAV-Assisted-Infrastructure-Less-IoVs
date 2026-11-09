@@ -1,0 +1,71 @@
+(* Hardened C3 WITHOUT fix A7 (the version first committed), TUAV a captured.
+   Kept to show what ProVerif finds: the member-side queries fail because the captured TUAV
+   knows K_M, hence hk, and can answer the member in b's name.
+   Original header follows.
+
+   TUAV b also requires the member's signature over (tk, E) under a key the TA certified.
+   Expected: acceptance implies the member started this handover, the neighbour's group key
+   stays secret, and session data survives a later leak of the member's long-term key.
+   Run:  proverif -lib common c3_captured_bound.pv *)
+
+free s: master [private].
+free xM: secretv [private].
+free xA: secretv.              (* the captured TUAV's secret value *)
+free KM: key.
+free Kab: key.
+free idM: bitstring.
+free idA: bitstring.
+free idB: bitstring.
+free gkB: bitstring [private].
+free payload: bitstring [private].
+
+fun tuavTag(bitstring): bitstring [data].      (* ep = 0: the identity space of TUAV credentials *)
+fun memberTag(bitstring): bitstring [data].    (* ep >= 1: the identity space of member credentials *)
+
+table usedN(bitstring).
+
+event memberStart(bitstring, G).
+event tuavBAccept(bitstring, G, G).
+event memberDone(bitstring, G, G).
+event tuavBSent(bitstring, G, G).
+
+query e: G; event(tuavBAccept(idM, pubx(xM), e)) ==> event(memberStart(idM, e)).
+query id: bitstring, X: G, e: G; event(tuavBAccept(id, X, e)) ==> event(memberStart(id, e)).
+query e: G, eb: G; event(memberDone(idM, e, eb)) ==> event(tuavBSent(idM, e, eb)).
+query attacker(gkB) phase 0.
+query attacker(payload).
+
+let Member =
+  in(c, blob: bitstring);
+  let (tsh: bitstring, tk: bitstring) = sdec(blob, KM) in
+  let hk = kdf2(KM, (idB, tsh)) in
+  new e: exponent;
+  let E = exp(g, e) in
+  event memberStart(idM, E);
+  out(c, (idA, tk, E, mac((tk, E), hk),
+          clsign((idA, idB, tk, E), xM, partial(s, (memberTag(idM), pubx(xM))))));
+  in(c, (Eb: G, ct: bitstring));
+  let K2 = kdf2(hk, k2b(kdf(exp(Eb, e), idM))) in
+  let gk = sdec(ct, K2) in
+  event memberDone(idM, E, Eb);
+  out(c, senc(payload, K2)).
+
+let TUAVb =
+  in(c, (=idA, tk: bitstring, E: G, t: bitstring, sig: bitstring));
+  let (id: bitstring, X: G, hk: key, N: bitstring) = sdec(tk, Kab) in
+  if t = mac((tk, E), hk) then
+  if clcheck(sig, (idA, idB, tk, E), (memberTag(id), X), X, pubm(s)) = true then
+  get usedN(=N) in 0 else
+  insert usedN(N);
+  event tuavBAccept(id, X, E);
+  new eb: exponent;
+  let Eb = exp(g, eb) in
+  let K2 = kdf2(hk, k2b(kdf(exp(E, eb), id))) in
+  event tuavBSent(id, E, Eb);
+  out(c, (Eb, senc(gkB, K2))).
+
+process
+  out(c, pubm(s)); out(c, pubx(xM));
+  out(c, partial(s, (tuavTag(idA), pubx(xA))));
+  ( (!Member) | (!TUAVb)
+  | phase 1; out(c, xM) )

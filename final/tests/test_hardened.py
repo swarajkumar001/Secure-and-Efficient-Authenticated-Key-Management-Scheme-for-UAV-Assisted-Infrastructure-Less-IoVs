@@ -225,6 +225,53 @@ def test_hardened_handover_signature_binds_the_destination(h):
     assert C.accept_handover(msg, NOW + 1)[0] is None
 
 
+# ---------------------------------------------------------------- A7 captured old TUAV poses as the new one
+def _fake_reply(A, B, m, msg, sign_with=None):
+    """the captured old TUAV knows K_M, hence hk, and answers the member in B's name"""
+    hk = sym.kdf(A.members[m.cred(1).key][0], b"HO", B.id, NOW.to_bytes(8, "big"))
+    e_x = ec.rand_scalar(); E_x = mul(P, e_x)
+    K2 = sym.kdf(enc_point(mul(msg["E"], e_x)), hk, m.cred(1).ident, B.id)
+    fake_gk = os.urandom(16)
+    resp = {"E": E_x, "ts": msg["ts"], "blob": sym.seal(K2, fake_gk + (99).to_bytes(4, "big"), enc_point(E_x) + msg["ts"].to_bytes(8, "big"))}
+    if sign_with is not None:
+        R, v = ours.sign(sign_with, hd.handover_reply_msg(A.id, B.id, msg["ticket"], msg["E"], E_x), msg["ts"])
+        resp.update(X=sign_with.X, Y=sign_with.Y, R=R, v=v)
+    return resp, fake_gk, K2
+
+
+def test_a7_v1_captured_old_tuav_poses_as_the_new_one(v1):
+    ta, A, B = v1
+    m = v1_member(ta); join(A, [m])
+    m.take_ticket(A.issue_ticket(m.cred(1).key, B.id, NOW), B.id)
+    msg = m.handover_request(A.id, NOW + 1)
+    resp, fake_gk, K2 = _fake_reply(A, B, m, msg)
+    assert m.handover_finish(resp, B.id) and m.GK == fake_gk and m.K == K2   # A now holds the member's new key
+
+
+def test_a7_hardened_forged_reply_rejected_genuine_still_accepted(h):
+    ta, A, B = h
+    m = h_member(ta); join(A, [m])
+    m.take_ticket(A.issue_ticket(m.cred(1).key, B.id, NOW), B.id)
+    msg = m.handover_request(A.id, B.id, NOW + 1)
+    for signer in (None, A.cred):                       # unsigned, or signed with A's own credential
+        resp, fake_gk, _ = _fake_reply(A, B, m, msg, sign_with=signer)
+        assert not m.handover_finish(resp, B.id) and m.GK != fake_gk
+    resp, why = B.accept_handover(msg, NOW + 1)
+    assert why == "ok" and m.handover_finish(resp, B.id) and m.GK == B.GK
+
+
+def test_a7_hardened_reply_bound_to_this_handover(h):
+    """a genuine reply from B to another member cannot be replayed to this one"""
+    ta, A, B = h
+    m1, m2 = h_member(ta), h_member(ta); join(A, [m1, m2])
+    for m in (m1, m2):
+        m.take_ticket(A.issue_ticket(m.cred(1).key, B.id, NOW), B.id)
+    msg1, msg2 = m1.handover_request(A.id, B.id, NOW + 1), m2.handover_request(A.id, B.id, NOW + 1)
+    resp1, _ = B.accept_handover(msg1, NOW + 1)
+    assert not m2.handover_finish(resp1, B.id)
+    assert m1.handover_finish(resp1, B.id)
+
+
 # ---------------------------------------------------------------- A3 false lists
 def test_a3_v1_captured_tuav_frames_a_member(v1):
     ta, A, B = v1

@@ -12,6 +12,8 @@ A3  neighbours merged eviction lists on trust           -> entries carry checkab
 A4  a credential did not bind a role                    -> the role is hashed into the identity
 A5  an old rekey could be replayed                      -> versions must increase
 A6  joiners received the key already in use             -> rekey once per window on arrival
+A7  a member authenticated its new TUAV only through hk -> the new TUAV signs its reply under its
+    (found by ProVerif: a captured old TUAV knows hk)       own credential, which the old TUAV cannot forge
 
 C4  a TUAV is evicted, with the TA offline, by t votes from distinct other TUAVs.
     Detecting a capture is outside the protocol (tamper sensor, lost tether, crew report).
@@ -31,6 +33,7 @@ TAG_ROLE = {v: k for k, v in ROLE_TAG.items()}
 PER_PID = 2                                # candidates kept per pseudonym per window
 VOTE_SIZE = SIZE["id"] + 3 * SIZE["G"] + SIZE["ts"] + SIZE["Zq"]   # id, X, Y, R, ts, v
 HO_SIG_SIZE = SIZE["G"] + SIZE["Zq"]       # (R, v) added to the handover request
+HO_REPLY_SIG_SIZE = 3 * SIZE["G"] + SIZE["Zq"]   # (X_b, Y_b, R, v) added to the handover reply
 
 
 def dec_point(b):
@@ -40,6 +43,10 @@ def dec_point(b):
 
 def handover_msg(tuav_a, tuav_b, ticket, E):
     return b"handover" + tuav_a + tuav_b + H("HT", ticket) + enc_point(E)
+
+
+def handover_reply_msg(tuav_a, tuav_b, ticket, E, E_b):
+    return b"handover-reply" + tuav_a + tuav_b + H("HT", ticket) + enc_point(E) + enc_point(E_b)
 
 
 def vote_msg(target):
@@ -141,7 +148,20 @@ class HardenedMember(ours.Member):
         self.e2 = rand_scalar(); E2 = mul(P, self.e2)
         tau = sym.mac(self.hk, self.ticket, enc_point(E2), now.to_bytes(8, "big"))
         R, v = sign(self.cred(self._ep), handover_msg(tuav_a, tuav_b, self.ticket, E2), now)
+        self._ho = (tuav_a, tuav_b, self.ticket, E2)
         return {"from": tuav_a, "ticket": self.ticket, "E": E2, "ts": now, "tau": tau, "R": R, "v": v}
+
+    def handover_finish(self, resp, tuav_b):
+        # A7: hk is known to the old TUAV, so it cannot authenticate the new one; only a signature
+        # under a TUAV credential the TA issued to tuav_b can. A forged reply is ignored and the
+        # ephemeral is kept, so the genuine reply can still be accepted.
+        tuav_a, expected_b, ticket, E2 = self._ho
+        if tuav_b != expected_b or not all(k in resp for k in ("X", "Y", "R", "v")):
+            return False
+        if not verify(self.Ppub, tuav_b, 0, resp["X"], resp["Y"],
+                      handover_reply_msg(tuav_a, tuav_b, ticket, E2, resp["E"]), resp["ts"], resp["R"], resp["v"]):
+            return False
+        return super().handover_finish(resp, tuav_b)
 
     def apply_cert(self, target, votes):
         if not cert_ok(self.Ppub, target, votes, self.t):
@@ -318,7 +338,8 @@ class HardenedTUAV(ours.TUAV):
         self.members[key] = (K2, role, Request(ident, ep, X, Y, msg["E"], now, None, None, role))
         payload, nu = (self.GK, self.nu) if role == "join" else (self.VK, self.nuV)
         blob = sym.seal(K2, payload + nu.to_bytes(4, "big"), enc_point(E_b) + now.to_bytes(8, "big"))
-        return {"E": E_b, "ts": now, "blob": blob}, "ok"
+        R_b, v_b = sign(self.cred, handover_reply_msg(msg["from"], self.id, msg["ticket"], msg["E"], E_b), now)   # A7
+        return {"E": E_b, "ts": now, "blob": blob, "X": self.cred.X, "Y": self.cred.Y, "R": R_b, "v": v_b}, "ok"
 
     # ---- C4 ---------------------------------------------------------------------
     def vote(self, target, now):
