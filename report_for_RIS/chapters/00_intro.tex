@@ -2,20 +2,20 @@
 \chapter{Introduction}\label{ch:intro}
 % =====================================================================
 \section{About this project}
-This is the project report for the course \textbf{CS8.501 -- Research in Information Security}. The project ran in two phases on one research paper:
+This is the project report for the course \textbf{CS8.501 -- Research in Information Security}. The project is based on one research paper:
 \begin{quote}
 H.~Tan, W.~Zheng and P.~Vijayakumar, ``Secure and Efficient Authenticated Key Management Scheme for UAV-Assisted Infrastructure-Less IoVs,''
 \emph{IEEE Transactions on Intelligent Transportation Systems}, vol.~24, no.~6, pp.~6389--6400, June 2023~\cite{tan2023}.
 \end{quote}
 
 \begin{center}
-\begin{tabularx}{\linewidth}{@{}l X@{}}
+\begin{tabularx}{\linewidth}{@{}p{3.2cm} X@{}}
 \toprule
-\textbf{Phase} & \textbf{What we did}\\
+\textbf{Part} & \textbf{What we did}\\
 \midrule
-Phase 1 & Read and presented the base paper: the problem it solves, its system model, the protocol step by step, and its security and performance
+Study of the paper & Read the base paper in detail: the problem it solves, its system model, the protocol step by step, and its security and performance
 claims (Chapters~\ref{ch:bg}--\ref{ch:p1analysis}).\\
-Phase 2 & Checked every security claim against the paper's own equations, proved three weaknesses, and designed four contributions that fix them and
+Analysis and design & Checked every security claim against the paper's own equations, proved three weaknesses, and designed four contributions that fix them and
 cover situations the paper does not handle (Chapters~\ref{ch:p2overview}--\ref{ch:concl}).\\
 \bottomrule
 \end{tabularx}
@@ -43,10 +43,10 @@ Chapter~\ref{ch:team} describes each member's contribution in more detail.
 
 \section{How this report is organised}
 \begin{itemize}[leftmargin=*]
-\item \textbf{Phase 1.} Chapter~\ref{ch:bg} explains the mathematics we need. Chapter~\ref{ch:p1paper} summarises the paper's motivation, contributions
+\item \textbf{The base paper.} Chapter~\ref{ch:bg} explains the mathematics we need. Chapter~\ref{ch:p1paper} summarises the paper's motivation, contributions
 and related work. Chapter~\ref{ch:base} gives the protocol exactly as printed, and Chapter~\ref{ch:p1analysis} summarises the paper's own security
-and performance analysis and the questions we took into Phase 2.
-\item \textbf{Phase 2.} Chapter~\ref{ch:p2overview} gives an overview. Chapters~\ref{ch:f1}--\ref{ch:f3} prove the three weaknesses, Chapters~\ref{ch:c1}--\ref{ch:hard}
+and performance analysis and the open questions it leaves.
+\item \textbf{Our analysis and contributions.} Chapter~\ref{ch:p2overview} gives an overview. Chapters~\ref{ch:f1}--\ref{ch:f3} prove the three weaknesses, Chapters~\ref{ch:c1}--\ref{ch:hard}
 present our contributions, and Chapters~\ref{ch:results}--\ref{ch:concl} compare, discuss and conclude.
 \end{itemize}
 Coloured boxes are used throughout: \textcolor{deep}{\textbf{blue}} boxes quote the base paper, \textcolor{bad}{\textbf{red}} boxes state a weakness,

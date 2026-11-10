@@ -1,8 +1,8 @@
 % =====================================================================
-\chapter{Phase 2: overview}\label{ch:p2overview}
+\chapter{Our analysis and contributions: overview}\label{ch:p2overview}
 % =====================================================================
 \section{Our approach}
-In Phase 2 we treated the paper's printed equations as the source of truth. For every security claim we asked: \emph{what exactly does an attacker
+We treated the paper's printed equations as the source of truth. For every security claim we asked: \emph{what exactly does an attacker
 know, and what can it compute from that?} When a claim failed, we wrote the failure as a theorem with a proof and a small example that can be checked
 by hand. We then read related literature (CRT and polynomial group keys, certificateless signatures, batch verification, mediated and threshold
 signatures, Byzantine fault tolerance) and designed fixes that use well-known tools in a new place.
@@ -50,7 +50,7 @@ broadcasts recovers every key. & \ref{ch:f2}\\
   \node[draw=black!50,fill=black!4,rounded corners=4pt,text width=21.6cm,align=center,font=\sffamily\small] at (9.2,-4.5)
      {\textbf{A1--A7}: we attacked our own first design and closed seven flaws (one of them found only by formal verification)};
 \end{tikzpicture}}
-\caption{How the Phase 2 results fit together. The three weaknesses are fixed by C1; once the TA leaves the field the TUAV holds the trust, and C2--C4
+\caption{How our results fit together. The three weaknesses are fixed by C1; once the TA leaves the field the TUAV holds the trust, and C2--C4
 protect it.}
 \label{fig:map}
 \end{figure}

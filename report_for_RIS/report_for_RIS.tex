@@ -12,7 +12,7 @@
 {\Large Security Analysis and Improvements of a TUAV-Assisted\\ Key Management Scheme for Infrastructure-Less IoVs\par}
 \vspace{0.6cm}
 {\large CS8.501 -- Research in Information Security\par}
-{\large Project Report (Phase 1 and Phase 2)\par}
+{\large Project Report\par}
 \vspace{1.0cm}
 {\large Submitted by: Team 6\par}
 \vspace{0.2cm}
@@ -33,13 +33,13 @@
 % ============================== abstract ==============================
 \chapter*{Abstract}
 \addcontentsline{toc}{chapter}{Abstract}
-This report covers both phases of our course project on the paper ``Secure and Efficient Authenticated Key Management Scheme for UAV-Assisted
+This report presents our course project on the paper ``Secure and Efficient Authenticated Key Management Scheme for UAV-Assisted
 Infrastructure-Less IoVs'' by H.~Tan, W.~Zheng and P.~Vijayakumar (IEEE T-ITS, 2023)~\cite{tan2023}. The paper replaces broken roadside units in a
 disaster area with a \emph{tethered} UAV (TUAV) that is powered by a fire truck (ECRV), and uses a trusted authority (TA), reached by satellite, to
 authenticate a group of UAVs and give them a group key built with the Chinese Remainder Theorem (CRT).
 
-In \textbf{Phase 1} we studied the paper in detail: its motivation, system model, the five protocol phases (IS, US, GA, GD, DU), and its security and
-performance claims. In \textbf{Phase 2} we checked those claims against the paper's own equations. We prove three weaknesses: the TA can sign as any
+We first study the paper in detail: its motivation, system model, the five protocol phases (IS, US, GA, GD, DU), and its security and
+performance claims. We then check those claims against the paper's own equations. We prove three weaknesses: the TA can sign as any
 UAV (F1), the CRT group key leaks every member's key -- even to a passive outsider who compares two broadcasts (F2), and one leaked long-term secret
 opens all past group keys (F3). We then propose four contributions: authentication with the TA offline and a separately sealed key for every member
 (C1), handover between TUAVs (C2), voting out a compromised TUAV (C3) and splitting the TUAV's key across its tether (C4). Each result comes with a
@@ -51,15 +51,15 @@ theorem, a worked example and a diagram.
 % ============================== introduction ==============================
 \input{chapters/00_intro}
 
-% ============================== Phase 1 ==============================
-\partpage{deep}{Phase 1}{Understanding the base paper}{Motivation, system model, the five protocol phases, and what the paper claims.}
+% ============================== the base paper ==============================
+
 \input{chapters/02_background}
 \input{chapters/p1_paper}
 \input{chapters/03_base}
 \input{chapters/p1_analysis}
 
-% ============================== Phase 2 ==============================
-\partpage{bad}{Phase 2}{Analysis and contributions}{Three weaknesses we proved, four contributions we built, and how they compare.}
+% ============================== analysis and contributions ==============================
+
 \input{chapters/p2_overview}
 \input{chapters/04_f1}
 \input{chapters/05_f2}

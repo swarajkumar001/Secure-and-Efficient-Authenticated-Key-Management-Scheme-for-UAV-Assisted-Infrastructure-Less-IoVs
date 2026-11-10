@@ -1,5 +1,5 @@
 % =====================================================================
-\chapter{Phase 1: the paper's own analysis}\label{ch:p1analysis}
+\chapter{Security and performance analysis in the paper}\label{ch:p1analysis}
 % =====================================================================
 \section{Security analysis in the paper}
 Section~V of the paper gives five theorems. We summarise each one and how the paper argues it.
@@ -65,8 +65,8 @@ work is done by the TA ``prior to the verification of TUAV'', so it counts the T
 For communication, the paper uses 128-byte elements in $\G_1$, 40-byte elements in $\G$, 20-byte hashes and 4-byte timestamps, and reports lower
 overhead than the four compared schemes (its Table~V).
 
-\section{What we took from Phase 1 into Phase 2}
-While preparing the Phase 1 presentation we noted several points that we wanted to check carefully in Phase 2:
+\section{Open questions we took forward}
+While studying the paper we noted several points that we wanted to check carefully:
 \begin{enumerate}[leftmargin=*]
 \item The TA stores every UAV's secret $s_i$ (IS2), yet the paper claims key-escrow resilience and non-repudiation. \hfill $\rightarrow$ F1
 \item The coefficients of $\Lambda(x)$ are sent in the clear and only the constant term is masked. \hfill $\rightarrow$ F2
