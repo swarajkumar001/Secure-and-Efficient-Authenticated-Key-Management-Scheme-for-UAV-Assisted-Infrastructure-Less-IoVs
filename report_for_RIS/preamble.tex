@@ -1,0 +1,189 @@
+% =====================================================================
+%  RIS project report (Phase 1 + Phase 2), Team 6
+%  Build:  pdflatex report_for_RIS  (run twice)
+% =====================================================================
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[a4paper,margin=2.2cm,headheight=14pt]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{booktabs,array,tabularx,multirow}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{pifont}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable,theorems}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,shapes.misc,fit,backgrounds,calc,shadows,decorations.pathreplacing,decorations.pathmorphing}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.17}
+\usepackage[colorlinks=true,linkcolor=deep,citecolor=uavc,urlcolor=uavc]{hyperref}
+
+% ---------------- palette ----------------
+\definecolor{deep}{HTML}{0B3954}     % navy    -- TA, overview
+\definecolor{uavc}{HTML}{087E8B}     % teal    -- UAVs, C1
+\definecolor{vehc}{HTML}{6A4C93}     % violet  -- maths
+\definecolor{hoc}{HTML}{E07A1F}      % amber   -- TUAV, C3
+\definecolor{tether}{HTML}{B5179E}   % magenta -- C5
+\definecolor{quorum}{HTML}{1D5FA8}   % blue    -- C4
+\definecolor{bad}{HTML}{C81D25}      % red     -- flaws, attacks
+\definecolor{good}{HTML}{2A9D3F}     % green   -- holds, fixed
+\definecolor{ink}{HTML}{1F2933}
+\definecolor{sun}{HTML}{F4B400}
+
+\color{ink}
+\captionsetup{font=small,labelfont={bf,color=deep}}
+\setlist{itemsep=2pt,topsep=4pt}
+\renewcommand{\arraystretch}{1.18}
+\setlength{\parskip}{3pt}
+
+% ---------------- headings ----------------
+\titleformat{\chapter}[display]{\bfseries\sffamily\color{deep}}{\large\color{uavc}CHAPTER \thechapter}{4pt}{\huge}
+\titlespacing*{\chapter}{0pt}{0pt}{14pt}
+\titleformat{\section}{\Large\bfseries\sffamily\color{deep}}{\thesection}{0.8em}{}
+\titleformat{\subsection}{\large\bfseries\sffamily\color{uavc}}{\thesubsection}{0.7em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\sffamily\color{ink}}{\thesubsubsection}{0.6em}{}
+\pagestyle{fancy}\fancyhf{}
+\fancyhead[L]{\small\sffamily\color{deep}CS8.501 Research in Information Security -- Project Report}
+\fancyhead[R]{\small\sffamily\color{deep}Team 6}
+\fancyfoot[C]{\small\sffamily\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ---------------- theorem-like environments (numbered per chapter) ----------------
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\tcolorboxenvironment{theorem}{enhanced,breakable,colback=vehc!5,colframe=vehc,boxrule=0.6pt,arc=1.5mm,left=4pt,right=4pt}
+\tcolorboxenvironment{lemma}{enhanced,breakable,colback=vehc!3,colframe=vehc!70,boxrule=0.5pt,arc=1.5mm,left=4pt,right=4pt}
+\tcolorboxenvironment{corollary}{enhanced,breakable,colback=vehc!3,colframe=vehc!70,boxrule=0.5pt,arc=1.5mm,left=4pt,right=4pt}
+\tcolorboxenvironment{proposition}{enhanced,breakable,colback=vehc!3,colframe=vehc!70,boxrule=0.5pt,arc=1.5mm,left=4pt,right=4pt}
+\tcolorboxenvironment{definition}{enhanced,breakable,colback=deep!4,colframe=deep!70,boxrule=0.5pt,arc=1.5mm,left=4pt,right=4pt}
+
+% ---------------- coloured boxes ----------------
+\newtcolorbox{claimbox}[1][]{enhanced,breakable,colback=deep!4,colframe=deep,boxrule=0.6pt,arc=2mm,
+  fonttitle=\sffamily\bfseries,title={What the base paper says (quoted)},#1}
+\newtcolorbox{flawbox}[1][]{enhanced,breakable,colback=bad!5,colframe=bad,boxrule=0.7pt,arc=2mm,fonttitle=\sffamily\bfseries,#1}
+\newtcolorbox{fixbox}[1][]{enhanced,breakable,colback=uavc!6,colframe=uavc,boxrule=0.7pt,arc=2mm,fonttitle=\sffamily\bfseries,#1}
+\newtcolorbox{plainbox}[1][]{enhanced,breakable,colback=good!7,colframe=good!80!black,boxrule=0.6pt,arc=2mm,
+  fonttitle=\sffamily\bfseries,title={In plain words},#1}
+\newtcolorbox{workedbox}[1][]{enhanced,breakable,colback=sun!9,colframe=hoc,boxrule=0.6pt,arc=2mm,fonttitle=\sffamily\bfseries,#1}
+\newtcolorbox{keybox}[1][]{enhanced,breakable,colback=deep!5,colframe=deep,boxrule=0.6pt,arc=2mm,
+  fonttitle=\sffamily\bfseries,title={Key idea},#1}
+\newtcolorbox{limitbox}[1][]{enhanced,breakable,colback=black!3,colframe=black!55,boxrule=0.6pt,arc=2mm,
+  fonttitle=\sffamily\bfseries,title={Scope and honest limits},#1}
+\newtcolorbox{algobox}[2][]{enhanced,breakable,colback=white,colframe=vehc,boxrule=0.8pt,arc=2mm,
+  fonttitle=\sffamily\bfseries,coltitle=white,colbacktitle=vehc,title={#2},#1}
+\newcounter{algo}[chapter]
+\renewcommand{\thealgo}{\thechapter.\arabic{algo}}
+\newenvironment{algorithm}[1]{\refstepcounter{algo}\begin{algobox}{Algorithm \thealgo: \;#1}}{\end{algobox}}
+\newtcolorbox{stepbox}[2]{enhanced,breakable,colback=white,colframe=#1,boxrule=0.8pt,arc=2mm,
+  fonttitle=\sffamily\bfseries,coltitle=white,colbacktitle=#1,title={#2}}
+
+% ---------------- notation ----------------
+\newcommand{\TA}{\mathsf{TA}}
+\newcommand{\U}{\mathcal{U}}
+\newcommand{\Adv}{\mathcal{A}}
+\newcommand{\G}{\mathbb{G}}
+\newcommand{\Zq}{\mathbb{Z}_q^{*}}
+\newcommand{\Ppub}{P_{\mathrm{pub}}}
+\newcommand{\Tpub}{T_{\mathrm{pub}}}
+\newcommand{\PID}{\mathit{PID}}
+\newcommand{\RID}{\mathit{RID}}
+\newcommand{\ID}{\mathit{ID}}
+\newcommand{\pk}{\mathit{pk}}
+\newcommand{\sk}{\mathit{sk}}
+\newcommand{\ep}{\mathit{ep}}
+\newcommand{\ts}{\mathit{ts}}
+\newcommand{\GK}{\mathit{GK}}
+\newcommand{\Enc}{\mathsf{Enc}}
+\newcommand{\KDF}{\mathsf{KDF}}
+\newcommand{\Hz}{H_0}
+\newcommand{\Ho}{H_1}
+\newcommand{\Ht}{H_2}
+\newcommand{\Hd}{H_3}
+\newcommand{\BH}{\mathsf{H}_1}
+\newcommand{\MAC}{\mathsf{MAC}}
+\newcommand{\Tk}{\mathit{Tk}}
+\newcommand{\hk}{\mathit{hk}}
+\newcommand{\M}{\mathcal{M}}
+\newcommand{\Ta}{\mathcal{T}_a}
+\newcommand{\Tb}{\mathcal{T}_b}
+\newcommand{\cat}{\,\|\,}
+\newcommand{\yes}{\textcolor{good}{\ding{51}}}
+\newcommand{\no}{\textcolor{bad}{\ding{55}}}
+\newcommand{\steplabel}[2]{\textcolor{#1}{\textsf{\textbf{#2}}}}
+\newcommand{\badge}[2]{\tikz[baseline=(t.base)]\node[fill=#1,text=white,rounded corners=2pt,inner sep=2pt,font=\scriptsize\sffamily\bfseries](t){#2};}
+
+% ---------------- TikZ styles and icons ----------------
+\tikzset{
+  ent/.style={draw=#1,fill=#1!12,very thick,rounded corners=3pt,minimum width=2.3cm,minimum height=0.9cm,
+              align=center,font=\sffamily\small\bfseries,drop shadow={opacity=0.15}},
+  ent/.default=deep,
+  msg/.style={-{Stealth[length=2.6mm]},thick,draw=#1},
+  msg/.default=ink,
+  lbl/.style={font=\scriptsize\sffamily,fill=white,inner sep=1.5pt,align=center},
+  life/.style={draw=black!30,dashed},
+  act/.style={draw=#1,fill=#1!8,rounded corners=2pt,font=\scriptsize\sffamily,align=left,inner sep=3pt},
+  tier/.style={draw=#1,fill=#1!5,rounded corners=6pt,dashed,thick},
+  card/.style={draw=#1,fill=#1!10,very thick,rounded corners=4pt,align=center,font=\sffamily\small,inner sep=5pt,
+               drop shadow={opacity=0.15}},
+  % flowchart shapes
+  fstart/.style={draw=#1,fill=#1!15,thick,rounded corners=9pt,align=center,font=\sffamily\scriptsize\bfseries,inner sep=5pt,minimum height=0.8cm},
+  fproc/.style={draw=#1,fill=#1!7,thick,rounded corners=2pt,align=center,font=\sffamily\scriptsize,inner sep=4pt,minimum height=0.8cm},
+  fdec/.style={draw=#1,fill=#1!10,thick,diamond,aspect=2.2,align=center,font=\sffamily\scriptsize,inner sep=1pt},
+  fio/.style={draw=#1,fill=#1!8,thick,trapezium,trapezium left angle=72,trapezium right angle=108,align=center,font=\sffamily\scriptsize,inner sep=3pt,minimum height=0.8cm},
+  flow/.style={-{Stealth[length=2.2mm]},thick,draw=black!65},
+  pics/drone/.style={code={
+    \draw[line width=1.3pt] (-0.32,-0.32) -- (0.32,0.32) (-0.32,0.32) -- (0.32,-0.32);
+    \foreach \x/\y in {-0.32/-0.32,0.32/0.32,-0.32/0.32,0.32/-0.32}{\draw[line width=1pt,fill=white] (\x,\y) circle (0.15);}
+    \fill (0,0) circle (0.11);}},
+  pics/truck/.style={code={
+    \draw[thick,fill=white] (-0.62,-0.14) rectangle (0.22,0.36);
+    \draw[thick,fill=white] (0.22,-0.14) -- (0.22,0.22) -- (0.46,0.22) -- (0.6,0.04) -- (0.6,-0.14) -- cycle;
+    \fill (-0.36,-0.2) circle (0.1) (0.38,-0.2) circle (0.1);}},
+  pics/sat/.style={code={
+    \draw[thick,fill=white] (-0.14,-0.14) rectangle (0.14,0.14);
+    \draw[thick,fill=white] (-0.6,-0.09) rectangle (-0.22,0.09);
+    \draw[thick,fill=white] (0.22,-0.09) rectangle (0.6,0.09);
+    \draw[thick] (-0.22,0) -- (-0.14,0) (0.14,0) -- (0.22,0);}},
+  pics/ta/.style={code={
+    \draw[thick,fill=white] (-0.45,-0.35) rectangle (0.45,0.14);
+    \draw[thick,fill=white] (-0.56,0.14) -- (0,0.44) -- (0.56,0.14) -- cycle;
+    \foreach \x in {-0.3,-0.1,0.1,0.3}{\draw[thick] (\x,-0.3) -- (\x,0.09);}}},
+  pics/car/.style={code={
+    \draw[thick,fill=white,rounded corners=2pt] (-0.45,-0.1) rectangle (0.45,0.15);
+    \draw[thick,fill=white,rounded corners=2pt] (-0.25,0.15) rectangle (0.22,0.33);
+    \fill (-0.25,-0.14) circle (0.08) (0.25,-0.14) circle (0.08);}},
+  pics/chip/.style={code={
+    \draw[thick,fill=white,rounded corners=1pt] (-0.22,-0.22) rectangle (0.22,0.22);
+    \foreach \t in {-0.12,0,0.12}{\draw[thick] (\t,0.22) -- (\t,0.32) (\t,-0.22) -- (\t,-0.32) (0.22,\t) -- (0.32,\t) (-0.22,\t) -- (-0.32,\t);}
+    \node[font=\tiny\sffamily\bfseries] at (0,0) {g};}},
+  pics/tower/.style={code={
+    \draw[thick] (-0.25,-0.45) -- (0,0.4) -- (0.25,-0.45) (-0.16,-0.15) -- (0.16,-0.15) (-0.09,0.1) -- (0.09,0.1);
+    \draw[thick] (-0.12,0.5) arc (150:30:0.14) (-0.2,0.58) arc (150:30:0.23);}},
+}
+
+% ---------------- part divider ----------------
+\newcommand{\partpage}[4]{% #1 colour, #2 label, #3 title, #4 one-line summary
+  \cleardoublepage\thispagestyle{empty}
+  \addcontentsline{toc}{part}{#2\quad #3}
+  \begin{tikzpicture}[remember picture,overlay]
+    \fill[#1] (current page.north west) rectangle ([yshift=-11cm]current page.north east);
+    \node[anchor=west,text=white,font=\sffamily\bfseries\fontsize{54}{54}\selectfont] at ([xshift=2cm,yshift=-4.2cm]current page.north west) {#2};
+    \node[anchor=west,text=white,font=\sffamily\bfseries\huge,text width=16cm] at ([xshift=2cm,yshift=-7cm]current page.north west) {#3};
+    \node[anchor=west,text=#1!60!black,font=\sffamily\Large,text width=16cm] at ([xshift=2cm,yshift=-13cm]current page.north west) {#4};
+  \end{tikzpicture}
+  \clearpage}

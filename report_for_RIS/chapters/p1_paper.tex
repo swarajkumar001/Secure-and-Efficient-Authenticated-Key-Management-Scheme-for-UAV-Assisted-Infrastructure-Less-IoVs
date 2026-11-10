@@ -1,0 +1,96 @@
+% =====================================================================
+\chapter{Phase 1: the base paper at a glance}\label{ch:p1paper}
+% =====================================================================
+\section{Motivation given by the paper}
+The paper starts from three observations (Section~I of~\cite{tan2023}):
+\begin{enumerate}[leftmargin=*]
+\item Vehicle networks (IoVs) normally rely on roadside units (RSUs) at the edge. Existing authentication schemes assume these RSUs work. In a disaster
+they may not, and then vehicle-to-infrastructure (V2I) communication fails.
+\item Modern roads are three-dimensional (bridges, flyovers, tunnels), so flat ground coverage is not enough. Satellites have high latency and cost, so
+the paper prefers UAVs as an aerial extension of the network.
+\item Ordinary UAVs fly for less than an hour on battery. A \textbf{tethered UAV} gets power through a cable from a ground vehicle, so it can hover for a
+long time and act as a mobile base station and edge server.
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\resizebox{0.92\linewidth}{!}{%
+\begin{tikzpicture}[font=\sffamily\small]
+  \node[card=deep,text width=5.6cm,minimum height=3.3cm] (a) at (0,0) {};
+  \node[font=\sffamily\bfseries,text=deep] at (0,1.3) {Normal IoV};
+  \pic[color=deep,scale=1.1] at (0,0.35) {tower};
+  \foreach \x in {-1.6,-0.5,0.6,1.7}{\pic[color=vehc,scale=0.8] at (\x,-0.9) {car};}
+  \node[font=\scriptsize\sffamily,text=deep] at (0,-1.45) {vehicles talk through the RSU};
+  \node[card=bad,text width=5.6cm,minimum height=3.3cm] (b) at (7,0) {};
+  \node[font=\sffamily\bfseries,text=bad] at (7,1.3) {After a disaster};
+  \pic[color=black!45,scale=1.1] at (7,0.35) {tower};
+  \draw[bad,line width=2pt] (6.6,-0.15) -- (7.4,0.85) (6.6,0.85) -- (7.4,-0.15);
+  \foreach \x in {5.4,6.5,7.6,8.7}{\pic[color=vehc,scale=0.8] at (\x,-0.9) {car};}
+  \node[font=\scriptsize\sffamily,text=bad] at (7,-1.45) {RSU down: no V2I link};
+  \node[card=hoc,text width=5.6cm,minimum height=3.3cm] (c) at (14,0) {};
+  \node[font=\sffamily\bfseries,text=hoc] at (14,1.3) {The paper's idea};
+  \pic[color=hoc,scale=0.9] at (13.3,0.75) {drone};
+  \draw[tether,line width=1.4pt] (13.3,0.4) -- (13.3,-0.55);
+  \pic[color=hoc,scale=0.9] at (13.3,-0.8) {truck};
+  \pic[color=uavc,scale=0.6] at (14.6,0.8) {drone};
+  \pic[color=uavc,scale=0.6] at (15.4,0.3) {drone};
+  \node[font=\scriptsize\sffamily,text=hoc] at (14,-1.45) {TUAV on a tether + UAVs};
+  \draw[-{Stealth[length=3mm]},very thick,black!50] (a.east) -- (b.west);
+  \draw[-{Stealth[length=3mm]},very thick,black!50] (b.east) -- (c.west);
+\end{tikzpicture}}
+\caption{The motivation of the base paper: when roadside units fail, a tethered drone powered by a fire truck takes their place.}
+\label{fig:motivation}
+\end{figure}
+
+\section{Contributions claimed by the paper}
+\begin{claimbox}
+\begin{itemize}[leftmargin=*]
+\item ``Flexible and dynamic TUAV-enabled edge architecture for infrastructure-less IoV'' -- the TUAV replaces the failed edge server; the authors state
+that this is the first use of a TUAV-enabled edge network for infrastructure-less IoV.
+\item ``Secure and efficient TUAV-assisted group authentication mechanism with anonymity'' -- a certificateless group authentication with batch
+validation, where ``the complex pairing computation tasks are allocated to the cloud server''.
+\item ``Dynamic UAV management with updating strategy'' -- a group key built with the Chinese Remainder Theorem, with low cost for updating.
+\end{itemize}
+\hfill (Section I-A)
+\end{claimbox}
+
+\section{Related work discussed in the paper}
+Section~II of the paper groups earlier work into a few families:
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}p{4.2cm} X@{}}
+\toprule
+\textbf{Family} & \textbf{Examples cited by the paper}\\
+\midrule
+Authenticated key management for IoV & dual authentication and key agreement for V2V; certificateless conditional privacy-preserving authentication
+(CL-CPPA); fog-computing based AKM\\
+Identity- and attribute-based schemes & pairing-free identity-based anonymous authentication with vehicle revocation; attribute-based encryption for
+vehicular social networks\\
+Lattice-based schemes & conditional privacy-preserving authentication based on the short integer solution problem\\
+Group / batch authentication & batch authentication protocols that verify many vehicles at once, and certificateless aggregate signatures\\
+UAV-assisted IoV & schemes that still need a working local edge infrastructure\\
+\bottomrule
+\end{tabularx}
+\end{center}
+The paper's main argument is that none of these works independently of the local edge infrastructure, which is the gap it addresses.
+
+\section{Entities of the system}
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}l X@{}}
+\toprule
+\textbf{Entity} & \textbf{Role in the paper (Section III-D)}\\
+\midrule
+TA (trusted authority) & trusted server with large storage; does the setup and the user verification; reached through satellite (``space'') networks\\
+TUAV (tethered UAV) & multirotor drone powered through a cable; acts as a substitute edge base station\\
+ECRV & emergency communication response vehicle (a fire truck); powers the TUAV and acts as a control centre\\
+UAV network & battery drones (under one hour of flight) that give 3D coverage\\
+Vehicular network & vehicles that exchange driving data through the UAV network\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{Security objectives stated by the paper}
+The paper lists six goals (Section~III-E): \textbf{mutual authentication}, \textbf{user anonymity}, \textbf{unforgeability}, \textbf{non-repudiation},
+\textbf{conditional privacy preservation} (only a law-enforcement agency can reveal a malicious user) and \textbf{session key establishment}.
+Chapter~\ref{ch:base} shows how the protocol tries to reach them, and Chapter~\ref{ch:p1analysis} summarises how the paper argues it does.

@@ -1,0 +1,56 @@
+% =====================================================================
+\chapter{Phase 2: overview}\label{ch:p2overview}
+% =====================================================================
+\section{Our approach}
+In Phase 2 we treated the paper's printed equations as the source of truth. For every security claim we asked: \emph{what exactly does an attacker
+know, and what can it compute from that?} When a claim failed, we wrote the failure as a theorem with a proof and a small example that can be checked
+by hand. We then read related literature (CRT and polynomial group keys, certificateless signatures, batch verification, mediated and threshold
+signatures, Byzantine fault tolerance) and designed fixes that use well-known tools in a new place.
+
+\section{Results at a glance}
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}l X l@{}}
+\toprule
+& \textbf{Result} & \textbf{Chapter}\\
+\midrule
+\textcolor{bad}{\textbf{F1}} & \textbf{TA impersonation:} the TA can produce a valid request for any UAV; key-escrow resilience and non-repudiation fail. & \ref{ch:f1}\\
+\textcolor{bad}{\textbf{F2}} & \textbf{CRT group-key leakage:} a removed UAV reads new keys, a newcomer reads old keys, and a passive outsider who records two
+broadcasts recovers every key. & \ref{ch:f2}\\
+\textcolor{bad}{\textbf{F3}} & \textbf{No forward secrecy:} one leaked long-term secret opens all past group keys. & \ref{ch:f3}\\
+\midrule
+\textcolor{uavc}{\textbf{C1}} & \textbf{Authentication with the TA offline} and a separately sealed key for every member. & \ref{ch:c1}\\
+\textcolor{hoc}{\textbf{C2}} & \textbf{Handover between TUAVs} with a one-time ticket and signatures in both directions. & \ref{ch:c2}\\
+\textcolor{quorum}{\textbf{C3}} & \textbf{Quorum eviction:} $t$ TUAVs vote out a compromised TUAV. & \ref{ch:c3}\\
+\textcolor{tether}{\textbf{C4}} & \textbf{Tether-split key:} a captured drone holds only half a key and cannot sign. & \ref{ch:c4}\\
+\textbf{A1--A7} & \textbf{Hardening:} seven flaws we found in our own first design and fixed. & \ref{ch:hard}\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{figure}[H]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[font=\sffamily\small]
+  \node[card=bad,text width=4.1cm] (f1) at (0,2.4) {\textbf{F1} TA impersonation\\ \scriptsize key escrow, no non-repudiation};
+  \node[card=bad,text width=4.1cm] (f2) at (0,0) {\textbf{F2} CRT key leakage\\ \scriptsize insider + passive outsider};
+  \node[card=bad,text width=4.1cm] (f3) at (0,-2.4) {\textbf{F3} no forward secrecy\\ \scriptsize one leak opens the past};
+  \node[card=uavc,text width=4.4cm,minimum height=2.6cm] (c1) at (6.6,0) {\textbf{C1}\\ TA-offline certificateless\\ authentication +\\ per-member key delivery};
+  \foreach \f in {f1,f2,f3}{\draw[-{Stealth[length=3mm]},very thick,uavc] (\f.east) -- (c1.west);}
+  \node[card=deep,text width=4.0cm] (g1) at (13.0,2.6) {\scriptsize gap: one TUAV ``covering the entire region'' (IS4)};
+  \node[card=deep,text width=4.0cm] (g2) at (13.0,0) {\scriptsize gap: no way to remove a bad TUAV when the TA is offline};
+  \node[card=deep,text width=4.0cm] (g3) at (13.0,-2.6) {\scriptsize gap: a captured TUAV keeps its whole key};
+  \node[card=hoc,text width=3.0cm] (c2) at (18.4,2.6) {\textbf{C2} handover};
+  \node[card=quorum,text width=3.0cm] (c3) at (18.4,0) {\textbf{C3} quorum eviction};
+  \node[card=tether,text width=3.0cm] (c4) at (18.4,-2.6) {\textbf{C4} tether-split key};
+  \draw[-{Stealth[length=3mm]},very thick,hoc] (g1.east) -- (c2.west);
+  \draw[-{Stealth[length=3mm]},very thick,quorum] (g2.east) -- (c3.west);
+  \draw[-{Stealth[length=3mm]},very thick,tether] (g3.east) -- (c4.west);
+  \draw[-{Stealth[length=3mm]},thick,black!50,dashed] (c1.east) -- node[lbl,above]{TUAV now holds} node[lbl,below]{the trust} (g2.west);
+  \node[draw=black!50,fill=black!4,rounded corners=4pt,text width=21.6cm,align=center,font=\sffamily\small] at (9.2,-4.5)
+     {\textbf{A1--A7}: we attacked our own first design and closed seven flaws (one of them found only by formal verification)};
+\end{tikzpicture}}
+\caption{How the Phase 2 results fit together. The three weaknesses are fixed by C1; once the TA leaves the field the TUAV holds the trust, and C2--C4
+protect it.}
+\label{fig:map}
+\end{figure}

@@ -1,0 +1,79 @@
+% =====================================================================
+\chapter{Results: security comparison and cost}\label{ch:results}
+% =====================================================================
+\section{Security properties}
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}X c c l@{}}
+\toprule
+\textbf{Property} & \textbf{Base paper} & \textbf{Our design} & \textbf{Where shown}\\
+\midrule
+The issuing authority cannot sign for a UAV (key-escrow resilience) & \no\ level 1 & \yes\ level 2 & Thm.~\ref{thm:taforge}, \ref{thm:noescrow}\\
+Non-repudiation (nobody else could have signed) & \no & \yes\ (TA excluded) & Cor.~\ref{cor:escrow}, Thm.~\ref{thm:unforge}\\
+A removed member cannot read new group keys & \no & \yes & Cor.~\ref{cor:revoke}, Thm.~\ref{thm:gksecrecy}\\
+A new member cannot read old group keys (backward secrecy) & \no & \yes & Cor.~\ref{cor:backward}, Thm.~\ref{thm:gksecrecy}\\
+A passive outsider learns nothing from the broadcasts & \no & \yes & Thm.~\ref{thm:outsider}, \ref{thm:gksecrecy}\\
+Forward secrecy after long-term key leakage & \no & \yes & Thm.~\ref{thm:retro}, \ref{thm:fs}\\
+Login works with the TA offline & \no & \yes & Ch.~\ref{ch:c1}\\
+Batch check sound, with a failure path & \no\ no weights & \yes\ $2^{-64}$ + fallback & Lemma~\ref{lem:bgr}, Thm.~\ref{thm:batch}\\
+Handover between TUAVs & -- & \yes & Thm.~\ref{thm:ho}\\
+Removal of a compromised TUAV without the TA & -- & \yes\ ($t$-of-$n$) & Thm.~\ref{thm:evsafe}, \ref{thm:evlive}\\
+A captured TUAV cannot impersonate the TUAV & \no & \yes & Thm.~\ref{thm:half}, \ref{thm:capture}\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{Attacks and their outcome}
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}X l l@{}}
+\toprule
+\textbf{Attack} & \textbf{Against the base paper} & \textbf{Against our design}\\
+\midrule
+TA (or thief of its database) logs in as a UAV & \textcolor{bad}{\textbf{succeeds}} (Alg.~\ref{alg:forge}) & fails: needs $x_i$ (ECDLP)\\
+Removed UAV computes the next group key & \textcolor{bad}{\textbf{succeeds}} (Ex.~5.1) & fails: no entry, fresh key\\
+New UAV opens the group's recorded past & \textcolor{bad}{\textbf{succeeds}} (Ex.~5.1) & fails: rekey on arrival\\
+Eavesdropper compares two broadcasts & \textcolor{bad}{\textbf{succeeds}} (Ex.~5.2, 5.3) & fails: nothing to compare\\
+Thief of a UAV's long-term key opens old sessions & \textcolor{bad}{\textbf{succeeds}} (Ex.~6.1) & fails: CDH on erased exponents\\
+Captured old TUAV mints tickets / poses as the new TUAV & -- (no handover) & fails: A2, A7\\
+Captured TUAV keeps acting as the TUAV & \textcolor{bad}{\textbf{succeeds}} ($s_{tu}$ is in the drone) & fails: half a key (Ex.~10.1)\\
+\bottomrule
+\end{tabularx}
+\end{center}
+All six attacks that apply to the base scheme succeed against it; the handover attack does not apply, since the base scheme has no handover. Every
+attack fails against our design, and each failure rests on a theorem.
+
+\section{Cost}
+All numbers below are computed from message formats and from the base paper's own MIRACL constants (Section~VI-A of~\cite{tan2023}); they do not depend
+on any particular implementation.
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}X l l@{}}
+\toprule
+& \textbf{Base paper} & \textbf{Our design}\\
+\midrule
+Pairings per login round of $n$ UAVs & $3n$ & 0\\
+Satellite round trips per login round & 1 & 0\\
+Authenticate and key $n=120$ UAVs (TA + TUAV) & $\approx3720$\,ms + satellite trip & $\approx230$\,ms\\
+Traffic to distribute one group key, $n=120$ & $\approx17.4$\,MB ($\Theta(n^3)$) & $\approx9.6$\,KB ($\Theta(n)$)\\
+Extra drone work per TUAV signature with C4 & -- & $+0.012$\,ms (chip in parallel)\\
+Handover & full re-login through the TA & no TA; saves the beacon wait\\
+Checking an eviction certificate ($t=2$) & -- & $\approx3.6$\,ms\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{What we claim, and what we do not}
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}X X@{}}
+\toprule
+\textcolor{good}{\textbf{We claim}} & \textcolor{bad}{\textbf{We do not claim}}\\
+\midrule
+three flaws in the base paper, each with a theorem, a proof and a worked example & that the outsider attack works from a \emph{single} broadcast or for mixed join-and-leave updates\\
+a design that authenticates and keys UAVs with the TA offline & that our TA cannot cheat at all (we reach Girault level 2, not 3)\\
+reduction-based security arguments for C1 and C4, symbolic verification for C2 & tight reductions, or security against every possible attack\\
+C2, C3 and C4 as new \emph{uses} of known tools & new cryptographic primitives\\
+\bottomrule
+\end{tabularx}
+\end{center}

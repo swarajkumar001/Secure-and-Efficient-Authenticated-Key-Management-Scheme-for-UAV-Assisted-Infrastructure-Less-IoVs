@@ -1,0 +1,136 @@
+% =====================================================================
+\chapter{Mathematical background}\label{ch:bg}
+% =====================================================================
+This chapter collects every tool used later. Where a result has a standard name we use it, so a reader can look it up.
+
+\section{Notation}
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}l X@{}}
+\toprule
+\textbf{Symbol} & \textbf{Meaning}\\
+\midrule
+$\G_1,\G_2,\ \hat e,\ P,\ q$ & base paper: additive group $\G_1$ and multiplicative group $\G_2$ of prime order $q$, pairing $\hat e:\G_1\times\G_1\to\G_2$, generator $P$\\
+$\langle id_i,s_i\rangle$ & base paper: true identity and long-term secret of UAV $i$, issued and \emph{stored} by the TA (IS2)\\
+$r_i,\ \xi_i=h_1(r_i)$ & base paper: UAV's random value and its hash; $\xi_i$ is sent in the clear (US3)\\
+$\ID_i,\ \upsilon_i,\ \Gamma_i$ & base paper: session identity, check value and credential of UAV $i$ (US1--US2)\\
+$\sigma_i=h_1(s_i\xi_i)P$ & base paper: ``decrypting key'' of UAV $i$, used as a CRT modulus (GD1)\\
+$\Lambda(x)=\sum_{k=0}^{n}a_kx^k$ & base paper: broadcast polynomial; $\{a_k\}$ is the public coefficient set (GD2, GD4)\\
+$\kappa_{tu}$ & base paper: group key\\
+\midrule
+$\G,\ P,\ q$ & our design: a prime-order elliptic-curve group (no pairing needed)\\
+$s,\ \Ppub=sP$ & our design: TA master key and public key (used only before the mission)\\
+$x,\ d,\ \sk=x+d,\ \pk$ & our design: user secret, partial key from the TA, full signing key, public key\\
+$e,\ E=eP$ & ephemeral Diffie--Hellman values, erased after use\\
+$\GK,\ \nu$ & our group key and its version number\\
+$\KDF,\ \Enc$ & key-derivation function (e.g.\ HKDF~\cite{hkdf}) and authenticated encryption with associated data (AEAD~\cite{aead})\\
+$a,\ g$ & C4: the drone's share and the ECRV chip's share of the TUAV key, $\sk=a+g$\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{Groups, pairings and hard problems}
+The base paper uses a symmetric pairing $\hat e:\G_1\times\G_1\to\G_2$ with \textbf{bilinearity}
+\[
+\hat e(aP,bQ)=\hat e(P,Q)^{ab},\qquad \hat e(Q+R,P)=\hat e(Q,P)\,\hat e(R,P),
+\]
+non-degeneracy and efficient computability (paper, Section~III-A). Security rests on two problems, defined in the paper as Definitions~1 and~2.
+
+\begin{definition}[ECDLP]
+Given $P$ and $Q=aP$, find $a$. The problem is hard if every probabilistic polynomial-time (PPT) algorithm succeeds with negligible probability.
+\end{definition}
+\begin{definition}[CDH]
+Given $P$, $aP$ and $bP$ for unknown $a,b$, compute $abP$. Hard if every PPT algorithm succeeds with negligible probability.
+\end{definition}
+\noindent A CDH \emph{instance} is only hard if $a$ and $b$ are unknown; if $b$ is public, anyone computes $abP=b\cdot(aP)$.
+
+\section{Four named theorems we use}
+\begin{theorem}[Chinese Remainder Theorem]\label{thm:crt}
+Let $m_1,\dots,m_n$ be pairwise coprime positive integers and $M=\prod_im_i$. For any $c_1,\dots,c_n$ there is exactly one $X\in[0,M)$ with
+$X\equiv c_i\pmod{m_i}$ for all $i$, namely $X=\sum_i c_i\,\omega_i\varphi_i \bmod M$, where $\omega_i=M/m_i$ and $\varphi_i\equiv\omega_i^{-1}\pmod{m_i}$.
+\end{theorem}
+The base paper uses the special case $c_1=\dots=c_n=\kappa_{tu}$: the number $\kappa_{tu}\sum_i\omega_i\varphi_i$ leaves remainder $\kappa_{tu}$ modulo every
+$\sigma_i$ (Lemma~\ref{lem:gd6}).
+
+\begin{theorem}[Vieta's formulas]\label{thm:vieta}
+If $p(x)=\prod_{i=1}^{n}(x-\sigma_i)=x^n+c_{n-1}x^{n-1}+\dots+c_1x+c_0$, then $c_{n-k}=(-1)^k e_k(\sigma_1,\dots,\sigma_n)$, where $e_k$ is the $k$-th
+elementary symmetric polynomial. In particular
+\[
+c_{n-1}=-(\sigma_1+\sigma_2+\dots+\sigma_n),\qquad c_0=(-1)^n\sigma_1\sigma_2\cdots\sigma_n .
+\]
+\end{theorem}
+
+\begin{theorem}[Rational Root Theorem]\label{thm:rrt}
+If a polynomial with integer coefficients has a rational root $u/v$ in lowest terms, then $u$ divides the constant coefficient and $v$ divides the leading
+coefficient. For a monic polynomial every rational root is an integer.
+\end{theorem}
+
+\begin{proposition}[Integer roots are easy to find]\label{prop:roots}
+All integer roots of an integer polynomial of degree $n$ with $B$-bit coefficients can be found in time polynomial in $n$ and $B$ -- for example by
+factoring with the LLL algorithm~\cite{lll}, or by Cantor--Zassenhaus factoring modulo a prime followed by Hensel lifting~\cite{cz}. When all roots are
+real and distinct (our case), real-root isolation followed by bisection finds each root of size at most $2^{160}$ in about $160$ halving steps.
+\end{proposition}
+\noindent So recovering the $\sigma_i$ from a known product polynomial is \textbf{not} a brute-force search; it is a routine computation.
+
+\section{Signatures, forking and batch verification}
+\begin{definition}[Schnorr-type signature~\cite{schnorr}]
+Key pair $(\sk,\ \pk=\sk\cdot P)$. To sign $m$: pick random $r$, set $R=rP$, $c=H(m\cat R\cat\dots)$, $v=r+c\cdot\sk\bmod q$; output $(R,v)$.
+To verify: check $vP\overset{?}{=}R+c\cdot\pk$.
+\end{definition}
+
+\begin{lemma}[General Forking Lemma~\cite{forking,bnforking}, informal]\label{lem:fork}
+If an adversary making at most $q_H$ hash queries outputs a valid signature with probability $\varepsilon$, then re-running it with the same random tape
+but fresh hash answers from the critical query yields two valid signatures $(R,v)$, $(R,v')$ with the same $R$ and different challenges $c\neq c'$ with
+probability at least about $\varepsilon^2/q_H$. From $vP=R+c\,\pk$ and $v'P=R+c'\,\pk$ one extracts $\sk=(v-v')(c-c')^{-1}$, solving the ECDLP for $\pk$.
+\end{lemma}
+
+\begin{lemma}[Small-Exponent Test, Bellare--Garay--Rabin~\cite{bgr}]\label{lem:bgr}
+Let $\Delta_1,\dots,\Delta_n\in\G$ (prime order $q$) and let $\lambda_1,\dots,\lambda_n$ be chosen uniformly from $\{1,\dots,2^\ell\}$ with $2^\ell<q$.
+If some $\Delta_j\neq 0$, then $\Pr\big[\sum_i\lambda_i\Delta_i=0\big]\le 2^{-\ell}$.
+\end{lemma}
+\begin{proof}
+Write $\Delta_i=\delta_iP$ with $\delta_j\neq0$. The sum is zero iff $\sum_i\lambda_i\delta_i\equiv0\pmod q$. Fix every $\lambda_i$ with $i\neq j$; then the
+equation holds for exactly one value of $\lambda_j$ modulo $q$, namely $-\delta_j^{-1}\sum_{i\ne j}\lambda_i\delta_i$. Since $\lambda_j$ is uniform over
+$2^\ell<q$ values, it hits that value with probability at most $2^{-\ell}$.
+\end{proof}
+\noindent Applied with $\Delta_i=v_iP-R_i-c_i\pk_i$ (the ``error'' of signature $i$), the test accepts a batch containing an invalid signature with
+probability at most $2^{-\ell}$; we use $\ell=64$. Without weights ($\lambda_i=1$), errors $+\Delta$ and $-\Delta$ cancel.
+
+\section{Security properties we test}
+\begin{definition}[Key-escrow resilience and Girault's trust levels~\cite{girault}]
+A scheme is \emph{key-escrow resilient} if the authority that issues credentials cannot produce valid signatures in a user's name. Girault grades
+authorities as: \textbf{level 1} -- it knows users' secret keys and can impersonate without trace; \textbf{level 2} -- it does not know them, but can
+impersonate by issuing a false credential (a second public key); \textbf{level 3} -- any such false credential can be proven.
+\end{definition}
+
+\begin{definition}[Non-repudiation]
+A sender cannot later deny a message it signed; equivalently, nobody else (including the authority) could have produced that signature.
+\end{definition}
+
+\begin{definition}[Group-key secrecy, revocation and backward secrecy]
+For a sequence of group keys $\kappa^{(1)},\kappa^{(2)},\dots$: \emph{secrecy} -- no non-member learns a current key; \emph{revocation} (forward group
+secrecy) -- a member removed before epoch $t$ learns nothing about $\kappa^{(t)},\kappa^{(t+1)},\dots$; \emph{backward secrecy} -- a member that joins in
+epoch $t$ learns nothing about $\kappa^{(1)},\dots,\kappa^{(t-1)}$.
+\end{definition}
+
+\begin{definition}[Forward secrecy]
+Session (or group) keys established before a long-term secret is compromised remain secret after the compromise.
+\end{definition}
+
+\section{Adversary models}
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}l X l@{}}
+\toprule
+\textbf{Adversary} & \textbf{Capabilities} & \textbf{Used in}\\
+\midrule
+Passive outsider & records every radio message (Dolev--Yao eavesdropper~\cite{dolevyao}); never registered & F2(c)\\
+Active outsider & also injects, replays, drops and modifies messages & C1, C2\\
+Insider (current or former member) & knows its own secrets and everything it ever received & F2(a), F2(b)\\
+Malicious or breached TA & knows everything the TA stores ($\langle id_i,s_i\rangle$ in the base paper; $s$, $d_i$ in ours) & F1, C1\\
+Long-term-key thief & obtains $s_i$ (e.g.\ from a captured UAV) later in time & F3, C1\\
+Captured TUAV & has the drone's full memory but no longer the tether & C4\\
+Compromised TUAV & software takeover while still tethered & C3, A1--A7\\
+\bottomrule
+\end{tabularx}
+\end{center}

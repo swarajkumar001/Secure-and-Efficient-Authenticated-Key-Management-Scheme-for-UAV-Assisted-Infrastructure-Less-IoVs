@@ -1,0 +1,65 @@
+% =====================================================================
+\chapter{F3: no forward secrecy}\label{ch:f3}
+% =====================================================================
+\begin{flawbox}[title={Flaw F3 -- one leaked long-term secret opens the past}]
+The decrypting key $\sigma_i=h_1(s_i\xi_i)P$ is a deterministic function of the long-term secret $s_i$ and of $\xi_i$, which is sent in the clear.
+Nothing ephemeral and secret enters it. So if $s_i$ ever leaks -- a captured UAV, a memory dump, a breached TA -- an attacker who recorded the old traffic
+rebuilds the group key of \textbf{every past session} that UAV took part in. The paper's Table~II ticks \emph{forward secrecy} (F7).
+\end{flawbox}
+
+\section{The theorem}
+\begin{theorem}[Retroactive key recovery]\label{thm:retro}
+Let UAV $i$ take part in sessions $1,\dots,T$, and let an eavesdropper record, for each session $t$, the request value $\xi_i^{(t)}$ (US3) and the coefficient
+set of $\Lambda^{(t)}$ (GD4). If $s_i$ is revealed at any later time, the eavesdropper computes every past group key
+\[
+\sigma_i^{(t)}=h_1\big(s_i\,\xi_i^{(t)}\big)P,\qquad \kappa^{(t)}=\Lambda^{(t)}\big(\sigma_i^{(t)}\big)\bmod\sigma_i^{(t)},\qquad t=1,\dots,T .
+\]
+\end{theorem}
+\begin{proof}
+$\xi_i^{(t)}$ is public (US3) and $s_i$ is now known, so $\sigma_i^{(t)}$ is computable; by Lemma~\ref{lem:gd6} the GD6 computation then returns
+$\kappa^{(t)}$ exactly as it did for the UAV itself. No step uses a value that was erased after session $t$, because the scheme never creates one.
+\end{proof}
+
+\begin{corollary}[One leak opens whole sessions]
+Combined with Theorem~\ref{thm:insider}, the attacker also recovers every other member's $\sigma_j^{(t)}$ of those sessions and therefore every key
+update DU1--DU2 made while those members stayed.
+\end{corollary}
+
+\begin{corollary}[The TA can open the past at will]
+The TA stores every $s_i$ (IS2), so it can apply Theorem~\ref{thm:retro} to any recorded session at any time.
+\end{corollary}
+
+\begin{figure}[H]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[font=\sffamily\small]
+  \draw[-{Stealth[length=3mm]},very thick,black!60] (0,0) -- (15.6,0) node[right]{time};
+  \foreach \x/\t in {1.6/1,4.6/2,7.6/3}{
+    \fill[uavc] (\x,0) circle (0.13);
+    \node[card=uavc,text width=2.6cm,anchor=south] at (\x,0.45) {\textbf{session \t}\\ \scriptsize recorded: $\xi_i^{(\t)}$, $\{a_k^{(\t)}\}$};
+    \node[font=\scriptsize\sffamily,text=uavc,anchor=north] at (\x,-0.25) {$\kappa^{(\t)}$ in use};}
+  \fill[bad] (12.0,0) circle (0.16);
+  \node[card=bad,text width=3.6cm,anchor=south] at (12.0,0.45) {\textbf{later: $s_i$ leaks}\\ \scriptsize captured UAV or breached TA};
+  \foreach \x in {1.6,4.6,7.6}{\draw[-{Stealth[length=2.6mm]},thick,bad,dashed] (12.0,-0.25) .. controls (11,-1.6) and (\x+1,-1.6) .. (\x,-0.75);}
+  \node[font=\scriptsize\sffamily\bfseries,text=bad] at (6.6,-1.9) {$\kappa^{(t)}=\Lambda^{(t)}(\sigma_i^{(t)})\bmod\sigma_i^{(t)}$ for every past session};
+\end{tikzpicture}}
+\caption{Why forward secrecy fails: everything needed to rebuild old keys is either public or long-term.}
+\label{fig:f3time}
+\end{figure}
+
+\begin{workedbox}[title={Example 6.1 -- tying it to Example 5.1}]
+Suppose the UAV whose key was $\sigma=7$ in Example~5.1 is captured a week later and its $s_i$ is read out. From the recorded $\xi_i$ the thief computes
+$\sigma_i=h_1(s_i\xi_i)P$, i.e.\ the value $7$; from the recorded broadcast $x^3-31x^2+311x+9014$ it computes $\Lambda(7)=10015$ and $10015\bmod7=\mathbf{5}$
+-- last week's group key. By Theorem~\ref{thm:insider} it also learns $11$ and $13$, and with them every key update of that session.
+\end{workedbox}
+
+\begin{remark}[Root cause]
+Forward secrecy needs a secret that exists only during the session and is then erased -- typically an ephemeral Diffie--Hellman exponent. In the base
+scheme the only fresh value is $r_i$, and it enters every computation only as $h_1(r_i)=\xi_i$, which is broadcast. The authentication values
+$S_i=\BH(\ts_3,\ID_i,h_1(s_i\xi_i)Q_{tu})$ of GD3--GD5 are likewise recomputable from $s_i$ and public data.
+\end{remark}
+
+\begin{fixbox}[title={How C1 removes F3 (Chapter~\ref*{ch:c1})}]
+Each key delivery uses fresh exponents $e_a$ (TUAV) and $e_i$ (UAV) that are erased afterwards. Recomputing an old pairwise key from long-term keys would
+require $e_ae_iP$ from $E_a=e_aP$ and $E_i=e_iP$, which is the CDH problem (Theorem~\ref{thm:fs}).
+\end{fixbox}
