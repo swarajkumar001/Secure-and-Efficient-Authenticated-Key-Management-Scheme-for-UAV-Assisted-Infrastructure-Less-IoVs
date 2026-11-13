@@ -1,0 +1,17 @@
+\resizebox{0.9\linewidth}{!}{%
+\begin{tikzpicture}[font=\sffamily\small]
+  \node[ent=hoc] (a) at (0,0)  {old TUAV $\Ta$};
+  \node[ent=uavc] (m) at (6.2,0) {member $\M$};
+  \node[ent=hoc] (b) at (12.4,0) {new TUAV $\Tb$};
+  \foreach \n in {a,m,b}{ \draw[life] (\n.south) -- ++(0,-11.0); }
+  \draw[{Stealth}-{Stealth},hoc,very thick] (0,-0.95) -- node[lbl,above]{HO0 \;signed ECDH $\Rightarrow K_{ab}$} (12.4,-0.95);
+  \node[act=hoc,anchor=north] at (0,-1.3) {HO1: $\hk=\KDF(K_\M\cat\texttt{HO}\cat\ID_b\cat\ts_h)$\\ $\Tk=\Enc(K_{ab},\PID\cat\ep\cat\pk\cat\hk\cat N\cat\mathit{exp})$};
+  \draw[msg=hoc] (0,-2.7) -- node[lbl,above]{$\Enc(K_\M,\Tk)$} (6.2,-2.7);
+  \node[act=uavc,anchor=north] at (6.2,-3.0) {derive $\hk$; pick $e$, $E=eP$\\ \textbf{sign} $(\ID_a\cat\ID_b\cat H(\Tk)\cat E)$};
+  \draw[msg=uavc] (6.2,-4.4) -- node[lbl,above]{HO2 \;$\Tk,\ E,\ \MAC(\hk,\Tk\cat E\cat\ts),\ \text{signature}$} (12.4,-4.4);
+  \node[act=hoc,anchor=north] at (12.4,-4.7) {HO3: open $\Tk$; check $\mathit{exp}$, $N$ unused,\\ not evicted, MAC, \textbf{member's signature};\\ $K'=\KDF(e_bE\cat\hk\cat\PID\cat\ID_b)$;\\ rekey the cell; \textbf{sign} $(\dots\cat E\cat E_b)$};
+  \draw[msg=hoc] (12.4,-7.0) -- node[lbl,above]{$E_b,\ \Enc(K',\GK_b\cat\nu),\ \text{signature of }\Tb$} (6.2,-7.0);
+  \node[act=uavc,anchor=north] at (6.2,-7.3) {HO4: \textbf{check $\Tb$'s signature};\\ $K'=\KDF(e\,E_b\cat\dots)$; open $\GK_b$};
+  \node[act=hoc,anchor=north] at (0,-8.6) {rekey after $\M$ has left};
+  \node[draw=good,fill=good!10,rounded corners,font=\scriptsize\sffamily\bfseries,text=good] at (6.2,-10.3) {$\Tb$ never learns $K_\M$ \;$\cdot$\; one fresh ECDH \;$\cdot$\; signatures both ways};
+\end{tikzpicture}}

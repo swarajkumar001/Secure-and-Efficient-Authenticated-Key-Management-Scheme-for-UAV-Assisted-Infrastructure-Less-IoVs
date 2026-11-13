@@ -26,16 +26,16 @@
 \usepackage[hidelinks]{hyperref}
 
 % ---------------- palette ----------------
-\definecolor{deep}{HTML}{000000}
-\definecolor{uavc}{HTML}{4D4D4D}
-\definecolor{vehc}{HTML}{737373}
-\definecolor{hoc}{HTML}{595959}
-\definecolor{tether}{HTML}{808080}
-\definecolor{quorum}{HTML}{666666}
-\definecolor{bad}{HTML}{000000}
-\definecolor{good}{HTML}{737373}
+\definecolor{deep}{HTML}{0B3954}
+\definecolor{uavc}{HTML}{087E8B}
+\definecolor{vehc}{HTML}{6A4C93}
+\definecolor{hoc}{HTML}{E07A1F}
+\definecolor{tether}{HTML}{B5179E}
+\definecolor{quorum}{HTML}{1D5FA8}
+\definecolor{bad}{HTML}{C81D25}
+\definecolor{good}{HTML}{2A9D3F}
 \definecolor{ink}{HTML}{000000}
-\definecolor{sun}{HTML}{BFBFBF}
+\definecolor{sun}{HTML}{F4B400}
 \definecolor{plotA}{HTML}{1F77B4}\definecolor{plotB}{HTML}{D62728}\definecolor{plotC}{HTML}{2CA02C}\definecolor{plotD}{HTML}{FF7F0E}\definecolor{plotE}{HTML}{7F7F7F}
 
 \color{ink}
@@ -45,11 +45,11 @@
 \setlength{\parskip}{3pt}
 
 % ---------------- headings ----------------
-\titleformat{\chapter}[display]{\bfseries\sffamily\color{deep}}{\normalsize\color{uavc}CHAPTER \thechapter}{2pt}{\LARGE}
+\titleformat{\chapter}{\LARGE\bfseries\sffamily}{\thechapter}{0.8em}{}
 \titleclass{\chapter}{straight}
-\titlespacing*{\chapter}{0pt}{30pt}{10pt}
-\titleformat{\section}{\Large\bfseries\sffamily\color{deep}}{\thesection}{0.8em}{}
-\titleformat{\subsection}{\large\bfseries\sffamily\color{uavc}}{\thesubsection}{0.7em}{}
+\titlespacing*{\chapter}{0pt}{20pt}{8pt}
+\titleformat{\section}{\large\bfseries\sffamily}{\thesection}{0.8em}{}
+\titleformat{\subsection}{\normalsize\bfseries\sffamily}{\thesubsection}{0.7em}{}
 \titleformat{\subsubsection}{\normalsize\bfseries\sffamily\color{ink}}{\thesubsubsection}{0.6em}{}
 \pagestyle{fancy}\fancyhf{}
 \fancyfoot[C]{\small\sffamily\thepage}
@@ -66,11 +66,11 @@
 \newtheorem{example}[theorem]{Example}
 \theoremstyle{remark}
 \newtheorem{remark}[theorem]{Remark}
-\tcolorboxenvironment{theorem}{enhanced,breakable,colback=vehc!5,colframe=vehc,boxrule=0.6pt,arc=1.5mm,left=4pt,right=4pt}
-\tcolorboxenvironment{lemma}{enhanced,breakable,colback=vehc!3,colframe=vehc!70,boxrule=0.5pt,arc=1.5mm,left=4pt,right=4pt}
-\tcolorboxenvironment{corollary}{enhanced,breakable,colback=vehc!3,colframe=vehc!70,boxrule=0.5pt,arc=1.5mm,left=4pt,right=4pt}
-\tcolorboxenvironment{proposition}{enhanced,breakable,colback=vehc!3,colframe=vehc!70,boxrule=0.5pt,arc=1.5mm,left=4pt,right=4pt}
-\tcolorboxenvironment{definition}{enhanced,breakable,colback=deep!4,colframe=deep!70,boxrule=0.5pt,arc=1.5mm,left=4pt,right=4pt}
+\tcolorboxenvironment{theorem}{enhanced,breakable,colback=black!4,colframe=black!55,boxrule=0.5pt,arc=1mm,left=4pt,right=4pt}
+\tcolorboxenvironment{lemma}{enhanced,breakable,colback=black!4,colframe=black!55,boxrule=0.5pt,arc=1mm,left=4pt,right=4pt}
+\tcolorboxenvironment{corollary}{enhanced,breakable,colback=black!4,colframe=black!55,boxrule=0.5pt,arc=1mm,left=4pt,right=4pt}
+\tcolorboxenvironment{proposition}{enhanced,breakable,colback=black!4,colframe=black!55,boxrule=0.5pt,arc=1mm,left=4pt,right=4pt}
+\tcolorboxenvironment{definition}{enhanced,breakable,colback=black!4,colframe=black!55,boxrule=0.5pt,arc=1mm,left=4pt,right=4pt}
 
 % ---------------- coloured boxes ----------------
 \newtcolorbox{claimbox}[1][]{enhanced,breakable,colback=deep!4,colframe=deep,boxrule=0.6pt,arc=2mm,

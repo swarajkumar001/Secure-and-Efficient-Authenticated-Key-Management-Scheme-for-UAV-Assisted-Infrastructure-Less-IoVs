@@ -1,0 +1,18 @@
+\resizebox{0.95\linewidth}{!}{%
+\begin{tikzpicture}[font=\sffamily\small]
+  \node[card=bad,minimum width=2.2cm] (t7) at (0,0) {$T_7$\\ \scriptsize compromised};
+  \node[card=quorum] (t1) at (4.4,2.0) {$T_1$};
+  \node[card=quorum] (t2) at (4.4,0) {$T_2$};
+  \node[card=quorum] (t3) at (4.4,-2.0) {$T_3$};
+  \draw[-{Stealth},thick,bad,dashed] (t7.east) -- node[lbl,above,sloped]{evidence} (t1.west);
+  \draw[-{Stealth},thick,bad,dashed] (t7.east) -- (t2.west);
+  \draw[-{Stealth},thick,bad,dashed] (t7.east) -- (t3.west);
+  \foreach \n in {t1,t2,t3}{\draw[-{Stealth},thick,quorum] (\n.east) -- (8.1,0);}
+  \node[card=quorum,text width=3.6cm] (cert) at (9.9,0) {\textbf{certificate}\\ $\ge t$ distinct votes\\ ``evict $T_7$''};
+  \foreach \y in {1.0,0,-1.0}{\pic[color=uavc,scale=0.8] at (-3.4,\y) {drone};}
+  \node[font=\scriptsize\sffamily\bfseries,text=uavc] at (-3.4,-1.8) {$T_7$'s members};
+  \draw[-{Stealth},thick,quorum,dashed] (cert.south) |- (-3.4,-3.6) -- (-3.4,-2.15);
+  \node[lbl,text=quorum] at (3.4,-3.95) {members check V1--V4, block $T_7$ for ever, re-join a neighbour by the full join (C1)};
+  \draw[bad,line width=1.6pt] (-2.6,0.5) -- (-1.0,0.1);
+  \draw[bad,line width=2pt] (-1.95,0.55) -- ++(0.3,-0.3) (-1.95,0.25) -- ++(0.3,0.3);
+\end{tikzpicture}}

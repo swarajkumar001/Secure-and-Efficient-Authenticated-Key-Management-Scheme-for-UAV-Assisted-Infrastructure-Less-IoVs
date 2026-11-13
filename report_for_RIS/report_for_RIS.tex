@@ -1,9 +1,10 @@
 \documentclass[11pt,openany]{report}
 \input{preamble.tex}
 \graphicspath{{figs/}}
+\newcommand{\repo}{https://github.com/swarajkumar001/Secure-and-Efficient-Authenticated-Key-Management-Scheme-for-UAV-Assisted-Infrastructure-Less-IoVs}
 
 \begin{document}
-% ============================== title page (course template) ==============================
+% ============================== title page ==============================
 \begin{titlepage}
 \begin{tikzpicture}[remember picture,overlay]
   \draw[black,line width=1.2pt] ([xshift=1.3cm,yshift=-1.3cm]current page.north west) rectangle ([xshift=-1.3cm,yshift=1.3cm]current page.south east);
@@ -12,7 +13,7 @@
 \vspace*{1.0cm}
 {\fontsize{21}{26}\selectfont\bfseries Cutting the Cord: Trust Without the TA\par}
 \vspace{0.3cm}
-{\Large Security Analysis and Improvements of a TUAV-Assisted\ Key Management Scheme for Infrastructure-Less IoVs\par}
+{\Large Security Analysis and Improvements of a TUAV-Assisted\\ Key Management Scheme for Infrastructure-Less IoVs\par}
 \vspace{0.6cm}
 {\large CS8.501 -- Research in Information Security\par}
 {\large Project Report\par}
@@ -28,8 +29,8 @@ Harsh Raj & Roll Number: 2025202005\\
 {\large Department: Computer Science and Information Security\par}
 \vspace{0.6cm}
 {\large Date of Submission: November 17, 2026\par}
-\vspace{1.3cm}
-\includegraphics[width=0.6\linewidth]{iiith_logo.png}\par
+\vspace{1.5cm}
+\includegraphics[width=0.62\linewidth]{iiith_logo_official.jpg}\par
 \vfill
 {\Large International Institute of Information Technology, Hyderabad\par}
 \vspace{0.6cm}
@@ -38,45 +39,533 @@ Harsh Raj & Roll Number: 2025202005\\
 % ============================== abstract ==============================
 \chapter*{Abstract}
 \addcontentsline{toc}{chapter}{Abstract}
-This report presents our course project on the paper ``Secure and Efficient Authenticated Key Management Scheme for UAV-Assisted
-Infrastructure-Less IoVs'' by H.~Tan, W.~Zheng and P.~Vijayakumar (IEEE T-ITS, 2023)~\cite{tan2023}. The paper replaces broken roadside units in a
-disaster area with a \emph{tethered} UAV (TUAV) that is powered by a fire truck (ECRV), and uses a trusted authority (TA), reached by satellite, to
-authenticate a group of UAVs and give them a group key built with the Chinese Remainder Theorem (CRT).
+Our project is based on the paper ``Secure and Efficient Authenticated Key Management Scheme for UAV-Assisted Infrastructure-Less IoVs'' by Tan, Zheng
+and Vijayakumar (IEEE T-ITS, 2023)~\cite{tan2023}. The paper uses a tethered UAV (TUAV), powered by an emergency vehicle, as a base station in a
+disaster area. A trusted authority (TA), reached by satellite, authenticates a group of UAVs, and the TUAV gives them a group key built with the
+Chinese Remainder Theorem (CRT).
 
-We first study the paper in detail: its motivation, system model, the five protocol phases (IS, US, GA, GD, DU), and its security and
-performance claims. We then check those claims against the paper's own equations. We prove three weaknesses: the TA can sign as any
-UAV (F1), the CRT group key leaks every member's key -- even to a passive outsider who compares two broadcasts (F2), and one leaked long-term secret
-opens all past group keys (F3). We then propose four contributions: authentication with the TA offline and a separately sealed key for every member
-(C1), handover between TUAVs (C2), voting out a compromised TUAV (C3) and splitting the TUAV's key across its tether (C4). Each result is stated as a
-theorem with a proof and is illustrated with a diagram.
+We studied the scheme and then checked its security claims against its own equations. We found and proved three weaknesses: (F1) the TA can sign as
+any UAV; (F2) the CRT group key leaks every member's key, even to an outsider who only listens to two broadcasts; (F3) one leaked long-term secret
+opens all past group keys. We then designed four contributions: (C1) authentication with the TA offline and a separately sealed key for every
+member; (C2) handover between TUAVs; (C3) voting out a compromised TUAV; (C4) splitting the TUAV's key across its tether. We also built a simulator
+of the base scheme and an implementation of our design; both are available online.
 
 \tableofcontents
 \listoffigures
+\clearpage
 
-% ============================== introduction ==============================
-\input{chapters/00_intro}
+% =====================================================================
+\chapter{Introduction}
+% =====================================================================
+\section{Problem statement}
+After an earthquake or a flood, roadside units (RSUs) and mobile towers often stop working. Rescue vehicles and drones still need to communicate, and
+this communication must be authenticated and secret. The base paper~\cite{tan2023} solves this with a \textbf{tethered UAV (TUAV)}: a drone that gets
+power through a cable from an emergency vehicle (ECRV) and works as a flying base station. Battery UAVs extend its coverage. A trusted authority (TA),
+reached through a satellite link, checks the UAVs, and the TUAV gives them a common group key.
 
-% ============================== the base paper ==============================
+Our work has two goals: (i) check whether the scheme really gives the security it claims, and (ii) design improvements where it does not.
 
-\input{chapters/02_background}
-\input{chapters/p1_paper}
-\input{chapters/03_base}
-\input{chapters/p1_analysis}
+\section{Summary of our work}
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}l X@{}}
+\toprule
+\textbf{F1} & The TA can produce a valid login request for any UAV (key escrow).\\
+\textbf{F2} & The CRT group key leaks: a removed UAV reads new keys, a new UAV reads old keys, and an outsider who records two broadcasts gets every key.\\
+\textbf{F3} & No forward secrecy: one leaked long-term secret opens all past group keys.\\
+\midrule
+\textbf{C1} & Authentication with the TA offline, and one sealed copy of the group key per member. Fixes F1, F2 and F3.\\
+\textbf{C2} & Handover of a UAV between two TUAVs, without the TA.\\
+\textbf{C3} & Quorum eviction: $t$ TUAVs vote out a compromised TUAV.\\
+\textbf{C4} & Tether-split key: a captured TUAV holds only half a key and cannot sign.\\
+\textbf{A1--A7} & Seven flaws we found in our own first design, and their fixes.\\
+\bottomrule
+\end{tabularx}
+\end{center}
 
-% ============================== analysis and contributions ==============================
+\begin{figure}[H]
+\centering
+\input{tikz/map}
+\caption{How our results fit together. Left: the three weaknesses we prove in the base scheme; all are removed by contribution C1. After C1 the TA is
+offline, so the TUAV becomes the trusted party. This leaves three gaps (third column), which are closed by C2, C3 and C4.}
+\label{fig:map}
+\end{figure}
 
-\input{chapters/p2_overview}
-\input{chapters/04_f1}
-\input{chapters/05_f2}
-\input{chapters/06_f3}
-\input{chapters/07_c1}
-\input{chapters/08_c2}
-\input{chapters/09_c3}
-\input{chapters/10_c4}
-\input{chapters/11_hardening}
-\input{chapters/12_results}
-\input{chapters/13_related}
-\input{chapters/14_conclusion}
+\section{Team and individual contributions}
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}l l X@{}}
+\toprule
+\textbf{Member} & \textbf{Roll number} & \textbf{Main responsibilities}\\
+\midrule
+Swaraj Kumar & 2025202016 & study of the base paper; overall framework of our design; simulator; compiling the report\\
+Hritik Ranjan & 2025202031 & mathematical analysis of F1, F2 and F3; design of C1 and its security analysis\\
+Harsh Raj & 2025202005 & design and security analysis of C2, C3 and C4; the study A1--A7; results\\
+\bottomrule
+\end{tabularx}
+\end{center}
 
-\input{chapters/refs}
+% =====================================================================
+\chapter{The base paper}\label{ch:base}
+% =====================================================================
+\section{System model}
+The system has four parts (Figure~\ref{fig:sysmodel}): the \textbf{TA}, a trusted server that sets up the system and verifies users; the \textbf{TUAV},
+a drone powered through a cable by the \textbf{ECRV}; the \textbf{UAV network} of battery drones; and the \textbf{vehicles}. The RSUs are assumed to be
+out of service, and the TA is reached through satellites.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.66\linewidth]{paper_fig1_system_model.png}
+\caption{System model of the TUAV-assisted infrastructure-less IoV, reproduced from Fig.~1 of the base paper~\cite{tan2023}. The UAV network (top left)
+talks to the tethered UAV, which is powered by the ECRV. The ECRV reaches the TA through the satellite network. Vehicles (bottom left) communicate
+through the UAVs because the RSU is out of service.}
+\label{fig:sysmodel}
+\end{figure}
+
+\section{The protocol}
+The scheme uses a pairing $\hat e:\G_1\times\G_1\to\G_2$ on groups of prime order $q$ with generator $P$, and hash functions $\BH,h_1,\dots,h_4$. It has
+five phases (Section~IV of the paper). We give the equations that matter for our analysis.
+
+\textbf{Initialisation (IS1--IS5).} The TA gives the TUAV $\langle id_{tu},s_{tu}\rangle$ and every UAV $\langle id_i,s_i\rangle$, and \emph{stores all of
+them}. The TUAV broadcasts $\ID_{tu}$, $R_{tu}=r_{tu}h_2(\ts_{tu},s_{tu})$ and $Q_{tu}=s_{tu}h_2(\ID_{tu},r_{tu})P$.
+
+\textbf{UAV signing (US1--US3).} UAV $i$ picks a random $r_i$ and computes $\xi_i=h_1(r_i)$, $\ID_i=h_3(id_i,\ts_2,\xi_i)$,
+$\upsilon_i=h_4(\ID_i,\ID_{tu},\ts_2,\xi_i)$ and the credential
+\begin{equation}\label{eq:gamma}
+\Gamma_i=\big[s_i\,h_3(\ID_i,\ts_2,s_i)\,R_{tu}-h_1(s_i\xi_i)\big]P-\upsilon_i\,h_1(r_i)\,Q_{tu}.
+\end{equation}
+It sends $\langle\ts_2,\ID_i,\xi_i,\upsilon_i,\Gamma_i\rangle$ to the TUAV in the clear.
+
+\textbf{Group authentication (GA1--GA4).} The TUAV sends the requests to the TA over the satellite. For every UAV the TA uses the stored $s_i$ to compute
+$\sigma_i=h_1(s_i\xi_i)P$ and three pairings $\psi_i,\mu_i,\delta_i$. The TUAV then checks all $n$ UAVs with one equation,
+$\prod_i\psi_i\,(\prod_i\delta_i)^{h_2(\ID_{tu},r_{tu})}=\prod_i\mu_i^{R_{tu}}$.
+
+\textbf{Group key distribution (GD1--GD6).} With $\omega_i=\prod_{j\ne i}\sigma_j$ and $\varphi_i\equiv\omega_i^{-1}\bmod\sigma_i$, the TUAV picks a group key
+$\kappa_{tu}$ and builds
+\begin{equation}\label{eq:lambda}
+\Lambda(x)=\kappa_{tu}\sum_{i=1}^n\omega_i\varphi_i+\prod_{i=1}^n(x-\sigma_i)=\sum_{k=0}^{n}a_kx^k .
+\end{equation}
+It sends the coefficients $\{a_k\}$ to each UAV in the clear. UAV $i$ computes $\kappa_{tu}=\Lambda(\sigma_i)\bmod\sigma_i$. This works by the Chinese
+Remainder Theorem: at $x=\sigma_i$ the product is zero, and the remaining number leaves remainder $\kappa_{tu}$ modulo every $\sigma_i$.
+
+\textbf{Dynamic key updating (DU1--DU2).} When UAVs join or leave, the TUAV builds a new polynomial $\Lambda^*(x)$ with a new key. Members who stay keep
+their old $\sigma_i$.
+
+\begin{figure}[H]
+\centering
+\input{tikz/baseflow}
+\caption{Message flow of the base scheme between a UAV, the TUAV and the TA. Time runs from top to bottom. Solid arrows are local radio messages; dashed
+arrows cross the satellite link. Boxes show what each entity computes.}
+\label{fig:baseflow}
+\end{figure}
+
+\section{What the paper claims}
+The paper proves five theorems (unforgeability, anonymity, replay resistance, conditional privacy, session key establishment). Its Table~II ticks eleven
+properties for the scheme, including \textbf{key escrow resilience}, \textbf{forward secrecy} and \textbf{non-repudiation}. For the group key it says
+(Section~IV-D): the scheme ``supports multi-device revocation and new device participation'', and
+\begin{quote}
+``\dots the malicious entities that successfully collect the coefficient set $\{a_i\}_{i\in[0,n]}$ can not acquire the $\kappa_{tu}$ without the correct
+decrypting key $\sigma_i$.''
+\end{quote}
+For cost, the paper reports $1.2524n+0.9054$\,ms for group authentication (151\,ms for 120 UAVs). This counts only the TUAV side; the TA's pairings are
+done ``prior to the verification of TUAV''.
+
+\begin{remark}
+The paper writes $\sigma_i=h_1(s_i\xi_i)P$, a curve point, but uses it as a modulus. So any implementation must read $\sigma_i$ as an integer. All our
+results hold for any such reading.
+\end{remark}
+
+% =====================================================================
+\chapter{Weaknesses of the base scheme}\label{ch:flaws}
+% =====================================================================
+\section{F1: the TA can sign as any UAV}
+In Eq.~\eqref{eq:gamma} the only secret is $s_i$, and the TA stores it (IS2). The random $r_i$ is used only as $h_1(r_i)=\xi_i$, and $\xi_i$ is sent in
+the clear. Everything else ($\ID_i,\upsilon_i,\ts_2,R_{tu},Q_{tu}$) is public.
+
+\begin{theorem}[TA forgery]\label{thm:f1}
+Anyone who knows $\langle id_i,s_i\rangle$ can create a request that the TUAV and TA accept as UAV $i$, and can then get the group key.
+\end{theorem}
+\begin{proof}
+Pick any $\xi'$ and a fresh $\ts'$. Compute $\ID'=h_3(id_i,\ts',\xi')$, $\upsilon'=h_4(\ID',\ID_{tu},\ts',\xi')$ and
+$\Gamma'=[s_i h_3(\ID',\ts',s_i)R_{tu}-h_1(s_i\xi')]P-\upsilon'\xi'Q_{tu}$. This is exactly an honest request with $\xi'$ in place of $h_1(r_i)$, so the
+check of GA3 holds for the same reason as for an honest UAV. The forger then computes $\sigma'=h_1(s_i\xi')P$ and $\kappa_{tu}=\Lambda(\sigma')\bmod\sigma'$.
+\end{proof}
+
+\textbf{Effect.} The TA, or anyone who steals its database, can log in as any UAV. So \emph{key escrow resilience} and \emph{non-repudiation} (Table~II)
+do not hold. The paper calls $r_i$ the UAV's ``partial key'' (proof of its Theorem~4), but $r_i$ adds no secret because only the public $\xi_i$ is used.
+
+\section{F2: the CRT group key leaks}
+In Eq.~\eqref{eq:lambda} only the constant term is hidden by $C=\kappa_{tu}\sum_i\omega_i\varphi_i$. All other coefficients are those of
+$\prod_i(x-\sigma_i)$.
+
+\begin{theorem}[Insider key recovery]\label{thm:insider}
+A member $j$ who knows only its own $\sigma_j$ and the public coefficients can compute every member's key $\sigma_i$.
+\end{theorem}
+\begin{proof}
+At $x=\sigma_j$ the product is zero, so $\Lambda(\sigma_j)=C$. The member subtracts this value and gets $\Lambda(x)-C=\prod_i(x-\sigma_i)$. This is a
+known polynomial with integer coefficients, and its roots are the keys. Integer roots can be found quickly with standard methods (for example
+LLL factoring~\cite{lll}); this is not a brute-force search.
+\end{proof}
+
+\begin{corollary}[Revocation and backward secrecy fail]\label{cor:f2ab}
+(a) A UAV that is removed already knows the keys $\sigma_k$ of the members who stay, and these keys do not change (DU2). So it computes the new key
+$\kappa^*_{tu}=\Lambda^*(\sigma_k)\bmod\sigma_k$. (b) A UAV that joins learns the old members' keys in the same way and can open recorded old broadcasts,
+$\kappa_{tu}=\Lambda(\sigma_j)\bmod\sigma_j$.
+\end{corollary}
+
+\begin{theorem}[Outsider key recovery]\label{thm:outsider}
+Let $\Lambda$ and $\Lambda'$ be the broadcasts before and after one UAV with key $\sigma$ leaves (or joins), with at least two members in common. An
+eavesdropper who knows only the two coefficient sets can compute $\sigma$, every other key, and both group keys.
+\end{theorem}
+\begin{proof}
+Let $p(x)=\prod_{\text{old}}(x-\sigma_i)$ and $q(x)=\prod_{\text{new}}(x-\sigma_i)$. The eavesdropper knows all coefficients of $p$ and $q$ except the
+constants $p_0,q_0$. By Vieta's formulas, the second coefficient of each polynomial is minus the sum of its keys. So the difference of the two sums is
+$\sigma$. For a leave, $p(x)=(x-\sigma)q(x)$; comparing the coefficients of $x$ gives $p_1=q_0-\sigma q_1$, so
+\[ q_0=p_1+\sigma\,q_1 . \]
+Now $q$ is fully known. Its roots are the remaining keys, and $p=(x-\sigma)q$ is known too. With any key, the attacker computes both group keys like a
+member. For a join the roles are swapped: $p_0=q_1+\sigma p_1$.
+\end{proof}
+
+\begin{figure}[H]
+\centering
+\input{tikz/outflow}
+\caption{Flowchart of the outsider attack. The attacker records the coefficient sets before and after one membership change, gets the changed member's
+key from the two sums, removes the mask, and finds all keys and both group keys. It needs no registration and no secret.}
+\label{fig:outflow}
+\end{figure}
+
+\textbf{Effect.} Theorem~\ref{thm:outsider} contradicts the sentence quoted in Chapter~\ref{ch:base}: someone who only collects the coefficients \emph{can}
+get $\kappa_{tu}$. Corollary~\ref{cor:f2ab} contradicts ``supports multi-device revocation and new device participation''.
+
+\textbf{Scope.} The outsider attack is proved for one join or one leave. The same algebra also works when several UAVs leave together (or join
+together), as long as more members stay than change. Two cases are open: a single broadcast alone, and one update that mixes joins and leaves. We
+checked the attack with a program at the paper's size (160-bit keys, 12 UAVs). CRT-based group keys are known to be weak when a member is
+corrupted~\cite{sp24}; our outsider attack needs no corrupted member. Among the 94 papers that cite the base paper we found none that reports it.
+
+\section{F3: no forward secrecy}
+\begin{theorem}[Old keys can be rebuilt]\label{thm:f3}
+Suppose an attacker recorded $\xi_i$ and the coefficients of $\Lambda$ in past sessions. If $s_i$ leaks later, the attacker can compute the group key of
+every past session of UAV $i$.
+\end{theorem}
+\begin{proof}
+$\sigma_i=h_1(s_i\xi_i)P$ depends only on the long-term $s_i$ and the public $\xi_i$. With $s_i$ the attacker computes $\sigma_i$ for each recorded
+session and then $\kappa_{tu}=\Lambda(\sigma_i)\bmod\sigma_i$. No value that was deleted after the session is needed.
+\end{proof}
+\textbf{Effect.} \emph{Forward secrecy} (Table~II) does not hold. A captured UAV, or a breached TA, opens all the old traffic.
+
+% =====================================================================
+\chapter{Our contributions}\label{ch:contrib}
+% =====================================================================
+\section{C1: authentication with the TA offline}\label{sec:c1}
+\textbf{Idea.} The TA works only before the mission. Each UAV has a \emph{certificateless} key~\cite{alriyami}: one part comes from the TA and one
+part is made by the UAV itself. In the field the TUAV checks UAVs alone, and sends each one its own sealed copy of the group key. We use an ordinary
+elliptic-curve group $\G$ with generator $P$; no pairing is needed.
+
+\textbf{Keys (before the mission).} The TA has a master key $s$ and publishes $\Ppub=sP$. A UAV picks its own secret $x$ and sends $X=xP$. The TA picks
+$y$, gives the UAV a pseudonym $\PID$ and computes
+\[ Y=yP,\qquad h=\Ho(\PID\cat\ep\cat X\cat Y),\qquad d=y+s\,h . \]
+The UAV keeps $\sk=x+d$. Its public key is $\pk=X+Y+h\,\Ppub$, which anyone can compute from public values. (The pair $(Y,d)$ is a Schnorr signature
+of the TA, as in~\cite{gg09}.)
+
+\textbf{Joining (UA1--UA5, Figure~\ref{fig:c1flow}).} The TUAV broadcasts a signed beacon with a fresh value $E_a=e_aP$. UAV $i$ picks fresh $e_i,r_i$
+and sends $E_i=e_iP$ with a Schnorr signature~\cite{schnorr} $(R_i,v_i)$ on the join message:
+\[ R_i=r_iP,\qquad c_i=\Ht(m_i\cat\PID_i\cat X_i\cat Y_i\cat R_i\cat\ts_i),\qquad v_i=r_i+c_i\,\sk_i . \]
+One signature is valid if $v_iP=R_i+c_i\,\pk_i$. The TUAV checks all $n$ requests at once with random 64-bit weights $\lambda_i$~\cite{bgr}:
+\begin{equation}\label{eq:bv}
+\Big(\sum_i\lambda_iv_i\Big)P=\sum_i\lambda_iR_i+\sum_i\lambda_ic_i\,\pk_i .
+\end{equation}
+If this fails, it checks the requests one by one and keeps the valid ones. For each accepted UAV it computes
+\[ K_i=\KDF(e_aE_i\cat\PID_i\cat\ID_a\cat\ts_i),\qquad C_i=\Enc(K_i,\ \GK\cat\nu), \]
+and sends all $C_i$ in one broadcast. UAV $i$ computes the same $K_i$ from $e_iE_a$ and opens its copy of the group key $\GK$. Both sides then delete
+$e_a$ and $e_i$. On every join and every leave the TUAV picks a fresh $\GK$ (version $\nu$ goes up) and sends it only to current members.
+
+\begin{figure}[H]
+\centering
+\input{tikz/c1flow}
+\caption{Message flow of C1 between the TUAV and $n$ UAVs. Time runs from top to bottom; boxes show local computation. The TA (centre) is never
+contacted. Compared with Figure~\ref{fig:baseflow}, there is no satellite link, no pairing and no CRT polynomial.}
+\label{fig:c1flow}
+\end{figure}
+
+\textbf{Security.} We state the results and the main reason for each.
+\begin{theorem}[Security of C1]\label{thm:c1}
+Assume the discrete-logarithm (ECDLP) and CDH problems are hard in $\G$, hash functions are random oracles and $\Enc$ is a secure authenticated
+encryption scheme. Then:
+\begin{enumerate}[leftmargin=*,label=(\roman*)]
+\item \textbf{Unforgeability.} Nobody can forge a UAV's signature, not even the TA.
+\item \textbf{Batch soundness.} A batch with an invalid request passes Eq.~\eqref{eq:bv} with probability at most $2^{-64}$.
+\item \textbf{Group-key secrecy.} An outsider, a removed member and a newcomer learn nothing about group keys they should not have.
+\item \textbf{Forward secrecy.} If all long-term keys leak later, old group keys stay secret.
+\end{enumerate}
+\end{theorem}
+\begin{proof}[Proof sketch]
+(i) A forgery can be rewound with the forking lemma~\cite{forking} to extract $\sk_i=x_i+d_i$. The TA knows $d_i$ but not $x_i$, so a forging TA would
+solve the ECDLP for $X_i$. (ii) Eq.~\eqref{eq:bv} says $\sum_i\lambda_i\Delta_i=0$, where $\Delta_i=v_iP-R_i-c_i\pk_i$ is the error of request $i$. If
+some $\Delta_j\ne0$, only one value of $\lambda_j$ makes the sum zero, so the chance is at most $2^{-64}$~\cite{bgr}. (iii) $\GK$ appears only inside
+the $C_i$. Each $K_i$ needs $e_ae_iP$, which is a CDH problem for everyone except the two ends, and $E_a,E_i$ are signed so they cannot be replaced.
+Nothing that is published depends on the members' keys, so the attacks of F2 have nothing to work on. (iv) Long-term keys only sign; $K_i$ comes
+from $e_a,e_i$, which were deleted.
+\end{proof}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}l X@{}}
+\toprule
+\textbf{Weakness} & \textbf{How C1 removes it}\\
+\midrule
+F1 TA impersonation & $\sk=x+d$ and the TA never sees $x$. The TA could only issue a second credential for the same pseudonym (Girault level~2~\cite{girault}; the base scheme is level~1).\\
+F2 CRT leakage & no public polynomial; one sealed copy per member; fresh key on every join and leave\\
+F3 no forward secrecy & keys come from fresh $e_a,e_i$ that are deleted after use\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{C2: handover between TUAVs}\label{sec:c2}
+\textbf{Gap.} The paper assumes one TUAV ``with the effective range covering the entire region'' (IS4). A real disaster area needs several TUAVs, and a
+UAV that moves would have to log in again through the TA.
+
+\textbf{Protocol (Figure~\ref{fig:c2flow}).} Neighbouring TUAVs share a link key $K_{ab}$. Before member $\M$ leaves, the old TUAV $\Ta$ makes a handover
+key $\hk=\KDF(K_\M\cat\texttt{HO}\cat\ID_b\cat\ts)$ and a one-time ticket
+$\Tk=\Enc(K_{ab},\ \PID\cat\pk\cat\hk\cat N\cat\mathit{exp})$ with a nonce $N$ and an expiry time. $\M$ sends $\Tk$, a fresh $E=eP$ and \emph{its own
+signature} to the new TUAV $\Tb$. $\Tb$ checks the ticket and the signature, derives $K'=\KDF(e_bE\cat\hk\cat\PID\cat\ID_b)$, changes its cell key, and
+answers with $E_b$, the new cell key and \emph{its own signature}. The old TUAV changes its key after $\M$ has left.
+
+\begin{figure}[H]
+\centering
+\input{tikz/c2flow}
+\caption{Message flow of the C2 handover between the old TUAV $\Ta$, the moving member $\M$ and the new TUAV $\Tb$. Time runs from top to bottom. The
+two signatures in bold (by the member in HO2 and by the new TUAV in HO3) are needed so that a captured old TUAV cannot misuse a ticket.}
+\label{fig:c2flow}
+\end{figure}
+
+\textbf{Security.} We modelled the protocol in ProVerif~\cite{blanchet16} with a network attacker who also controls a \emph{captured old TUAV}. With both
+signatures, five properties hold: each side is sure of the other (two properties), $K'$ is secret, the new cell key is secret, and $K'$ stays secret if
+$K_{ab}$ and $\hk$ leak later. Without the member's signature, or without the new TUAV's signature, the tool finds an attack. The new TUAV never
+learns the member's old key $K_\M$. No message goes to the TA.
+
+\section{C3: voting out a compromised TUAV}\label{sec:c3}
+\textbf{Gap.} After C1 the TUAV is the trusted party of its cell. If its software is hacked, nobody in the field can remove it, because the TA is
+offline.
+
+\textbf{Protocol (Figure~\ref{fig:c3vote}).} A neighbouring TUAV that has evidence of misbehaviour (for example two conflicting signed messages) signs a
+vote ``evict $T$''. A set of votes is a valid \textbf{eviction certificate} if: (V1) it has at least $t$ different TUAV signers; (V2) the target is not
+a signer; (V3) all votes name the same target; (V4) all signatures pass the batch check~\eqref{eq:bv}. Every UAV can check this with public keys. A UAV
+that receives a valid certificate against its TUAV leaves it for good and joins a neighbour with the normal join (C1).
+
+\begin{figure}[H]
+\centering
+\input{tikz/c3vote}
+\caption{Quorum eviction (C3). The neighbours $T_1,T_2,T_3$ get evidence against the compromised TUAV $T_7$ (dashed arrows) and each signs a vote. At
+least $t$ different votes form an eviction certificate. It is delivered to the members of $T_7$, who check it and join a neighbour.}
+\label{fig:c3vote}
+\end{figure}
+
+\begin{theorem}[Eviction safety and liveness]\label{thm:c3}
+(Safety) If at most $t-1$ TUAVs are compromised and honest TUAVs vote only on evidence, no honest TUAV can be evicted. (Liveness) If $t$ honest TUAVs
+have evidence, a valid certificate is formed.
+\end{theorem}
+\begin{proof}
+A certificate needs $t$ valid votes from different TUAVs. At most $t-1$ come from compromised ones, and a vote of an honest TUAV cannot be forged
+(Theorem~\ref{thm:c1}). So at least one honest TUAV voted, and it votes only on evidence. Liveness: $t$ honest votes satisfy V1--V4.
+\end{proof}
+This is the same idea as the quorum certificate in PBFT~\cite{castro99}. We use it in a new place: removing a key-management node while the authority
+is offline. With up to $f$ bad neighbours, choose $t=f+1$.
+
+\section{C4: the tether-split key}\label{sec:c4}
+\textbf{Gap.} The TUAV is the most valuable drone to capture. In the base scheme and in C1, a captured TUAV holds its whole key and can keep acting as
+a TUAV. C3 does not help quickly here, because voting needs evidence and time.
+
+\textbf{Idea (Figure~\ref{fig:split}).} The TUAV's signing key is split into two shares, $\sk=a+g$. The drone holds $a$. A small secure chip in the
+ECRV holds $g$. The public key $\pk=aP+gP$ is the same as before. The two sides sign together over the tether:
+\[ R=R_A+R_G,\qquad c=\Ht(m\cat\dots\cat R),\qquad v=(r_A+c\,a)+(r_G+c\,g), \]
+where $R_A=r_AP$ is the drone's part and $R_G=r_GP$ the chip's part. The drone must first send a commitment $H(R_A)$, and the chip runs one session
+at a time. The result satisfies $vP=R+c\,\pk$, so it is a normal signature and the UAVs need no change. If the tether is cut, the chip stops signing
+and the ECRV broadcasts a ``this TUAV is out of service'' message that both shares signed in advance.
+
+\begin{figure}[H]
+\centering
+\input{tikz/split}
+\caption{The tether-split key (C4). The drone holds the share $a$ and a secure chip in the ECRV holds the share $g$; they are connected by the tether.
+The public key $\pk=aP+gP$ is unchanged, and no single device holds the full key $a+g$.}
+\label{fig:split}
+\end{figure}
+
+\begin{theorem}[Half a key cannot sign]\label{thm:c4}
+Let $G=gP=\pk-aP$. If an attacker who knows the drone's share $a$ produces a valid signature $(R,v)$ on a message the chip did not sign, then
+$(R,\,v-c\,a)$ is a valid Schnorr signature for the public key $G$, whose secret key the attacker does not know.
+\end{theorem}
+\begin{proof}
+$(v-c\,a)P=vP-c\,aP=R+c\,(aP+G)-c\,aP=R+c\,G$.
+\end{proof}
+So forging with a captured drone is as hard as forging a Schnorr signature without the key, which needs the ECDLP. The commitment step is needed
+because signing many sessions in parallel without it is unsafe (the ROS attack~\cite{ros21}); the standard FROST protocol~\cite{rfc9591} is an
+alternative.
+
+\textbf{What is new.} Splitting a key between a device and a helper that can switch it off is known as mediated cryptography~\cite{bdtw01,cbn06}. New
+here is the place: the helper is the ECRV at the other end of the tether, and the switch is the tether itself. \textbf{Limit:} if the ECRV is seized
+together with the drone, both shares are lost.
+
+\section{A1--A7: fixing our own first design}
+Before finalising the design we attacked our own first version and found seven flaws.
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}l X X@{}}
+\toprule
+& \textbf{Flaw in our first design} & \textbf{Fix}\\
+\midrule
+A1 & one forged packet naming a UAV got that UAV evicted & a failed signature never evicts anybody\\
+A2 & a captured TUAV could create handover tickets & the member signs its own handover request\\
+A3 & a captured TUAV could frame a member at a neighbour & evictions cross cells only with evidence that can be checked\\
+A4 & a credential for one role could be used for another & the role is bound into the identity ($\ep$ inside $h$)\\
+A5 & an old key update could be replayed & key versions may only increase\\
+A6 & a newcomer received the key already in use & new key on every arrival\\
+A7 & a captured old TUAV could act as the new TUAV & the new TUAV signs its reply (found by ProVerif)\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% =====================================================================
+\chapter{Results}\label{ch:results}
+% =====================================================================
+\section{Security comparison}
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}X c c l@{}}
+\toprule
+\textbf{Property} & \textbf{Base paper} & \textbf{Ours} & \textbf{Shown in}\\
+\midrule
+The TA cannot sign as a UAV & \no & \yes & Thm.~\ref{thm:f1}, \ref{thm:c1}\\
+A removed UAV cannot read new keys & \no & \yes & Cor.~\ref{cor:f2ab}, Thm.~\ref{thm:c1}\\
+A new UAV cannot read old keys & \no & \yes & Cor.~\ref{cor:f2ab}, Thm.~\ref{thm:c1}\\
+An outsider learns nothing from the broadcasts & \no & \yes & Thm.~\ref{thm:outsider}, \ref{thm:c1}\\
+Forward secrecy & \no & \yes & Thm.~\ref{thm:f3}, \ref{thm:c1}\\
+Login works with the TA offline & \no & \yes & Section~\ref{sec:c1}\\
+Handover between TUAVs & -- & \yes & Section~\ref{sec:c2}\\
+Removing a compromised TUAV & -- & \yes & Thm.~\ref{thm:c3}\\
+A captured TUAV cannot act as the TUAV & \no & \yes & Thm.~\ref{thm:c4}\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{Cost from the paper's own constants}
+The paper gives the time of each operation (MIRACL library): pairing $7.2232$\,ms, scalar multiplication in $\G_1$ $2.6784$\,ms, scalar multiplication on
+the ordinary curve $0.9018$\,ms. With these numbers:
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}X l l@{}}
+\toprule
+\textbf{For $n$ UAVs} & \textbf{Base paper} & \textbf{Ours (C1)}\\
+\midrule
+Pairings & $3n$ (at the TA) & 0\\
+Satellite round trips per login & 1 & 0\\
+Time for $n=120$ (TA + TUAV) & $\approx3720$\,ms + satellite & $\approx230$\,ms\\
+Key-distribution traffic & $\approx10n^3$ bytes & $\approx80n$ bytes\\
+Extra drone work per signature with C4 & -- & $+0.012$\,ms\\
+\bottomrule
+\end{tabularx}
+\end{center}
+The traffic of the base scheme is large because coefficient $a_k$ has about $160(n-k)$ bits, so one coefficient set is about $10n^2$ bytes, and it is
+sent to each of the $n$ UAVs.
+
+\begin{figure}[H]
+\centering
+\input{tikz/traffic}
+\caption{Traffic needed to distribute one group key against the number of UAVs $n$ (logarithmic vertical axis). Red: the base scheme, which sends all
+polynomial coefficients to each UAV. Blue: C1, one broadcast with about 80 bytes per member. The marked points are the values for $n=120$.}
+\label{fig:traffic}
+\end{figure}
+
+\section{Simulator and implementation}
+We built two programs, both in Python with real BN128 pairings. The code is public:
+\begin{center}
+\scriptsize\url{\repo}
+\end{center}
+\begin{itemize}[leftmargin=*]
+\item \textbf{Simulator of the base scheme} (folder \texttt{uav\_iov\_simulator}). A web application that runs the paper's steps IS, US, GA, GD and DU
+with the same equations, and shows the network, the messages and the group key (Figure~\ref{fig:sim}).
+\item \textbf{Implementation of our design and experiments} (folder \texttt{final}). It contains both schemes, the attacks, and the ProVerif models.
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\linewidth]{simulator_network.png}
+\caption{Screenshot of our simulator of the base scheme. Top: status of the system (RSU destroyed, TUAV online, 8 UAVs registered and authenticated,
+group key of epoch 1). Left: the network as in the paper's system model. Right: the registered UAVs with hidden permanent identities and temporary
+identities.}
+\label{fig:sim}
+\end{figure}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}X l l@{}}
+\toprule
+\textbf{Measured on our implementation (same laptop, same code base)} & \textbf{Base paper} & \textbf{Ours}\\
+\midrule
+TA forges a UAV's request & succeeds & fails\\
+Removed UAV computes the new group key & succeeds & fails\\
+Time to authenticate and key 100 UAVs & 387.6\,s & 6.5\,s ($\approx60\times$ faster)\\
+Key-distribution traffic for 120 UAVs & 17.5\,MB & 9.6\,KB\\
+Flaws A1--A7 that still work (first design $\rightarrow$ final design) & -- & 7 of 7 $\rightarrow$ 0 of 7\\
+Handover properties verified in ProVerif & -- & 5 of 5\\
+\bottomrule
+\end{tabularx}
+\end{center}
+The times are from pure Python, so only the ratio is meaningful, not the absolute seconds.
+
+% =====================================================================
+\chapter{Related work and conclusion}\label{ch:concl}
+% =====================================================================
+\section{Related work}
+CRT-based broadcasting goes back to the ``secure lock''~\cite{chiou89}, and CRT group-key schemes are known to fail when a user is
+corrupted~\cite{sp24}. Certificateless cryptography~\cite{alriyami} removes key escrow; our credential follows the Schnorr-based identity
+scheme of Galindo and Garcia~\cite{gg09}, and batch checking follows Bellare, Garay and Rabin~\cite{bgr}. C3 uses the quorum idea of
+PBFT~\cite{castro99}. C4 uses mediated cryptography~\cite{bdtw01,cbn06} and threshold Schnorr signing~\cite{rfc9591}. We did not find earlier work
+that splits a tethered drone's key across its tether.
+
+\section{Limitations}
+\begin{itemize}[leftmargin=*]
+\item The outsider attack needs two broadcasts; a single broadcast and mixed updates are open.
+\item The TA in C1 can still register a second credential for a pseudonym (level~2, not level~3).
+\item The security of C1 and C4 is given as proof sketches; C3 and C4 do not yet have a formal model, and C4 is not yet built on real hardware.
+\item If $t$ or more TUAVs are compromised, or the ECRV is seized with the drone, C3 and C4 do not help.
+\end{itemize}
+
+\section{Conclusion}
+The base paper has a good idea: a tethered drone instead of a broken roadside unit. But its security depends on an authority that knows every secret
+and on a public polynomial that leaks the keys. We proved three weaknesses from the paper's own equations. Our design takes the authority out of the
+field, gives each member its own sealed key, and protects the TUAV that now holds the trust: UAVs move with signed tickets, TUAVs can vote out a bad
+TUAV, and a captured TUAV cannot sign because half of its key stays in the vehicle. Future work is a formal model of C4, a test on real drones, and
+the open cases of the outsider attack.
+
+% ============================== references ==============================
+\renewcommand{\bibname}{References}
+\begin{thebibliography}{99}
+\addcontentsline{toc}{chapter}{References}
+\small
+\bibitem{tan2023} H.~Tan, W.~Zheng and P.~Vijayakumar, ``Secure and efficient authenticated key management scheme for UAV-assisted infrastructure-less
+IoVs,'' \emph{IEEE Trans. Intell. Transp. Syst.}, vol.~24, no.~6, pp.~6389--6400, 2023.
+\bibitem{alriyami} S.~S. Al-Riyami and K.~G. Paterson, ``Certificateless public key cryptography,'' in \emph{ASIACRYPT 2003}, pp.~452--473.
+\bibitem{gg09} D.~Galindo and F.~D. Garcia, ``A Schnorr-like lightweight identity-based signature scheme,'' in \emph{AFRICACRYPT 2009}, pp.~135--148.
+\bibitem{schnorr} C.~P. Schnorr, ``Efficient signature generation by smart cards,'' \emph{J. Cryptology}, vol.~4, no.~3, pp.~161--174, 1991.
+\bibitem{forking} D.~Pointcheval and J.~Stern, ``Security arguments for digital signatures and blind signatures,'' \emph{J. Cryptology}, vol.~13,
+no.~3, pp.~361--396, 2000.
+\bibitem{bgr} M.~Bellare, J.~A. Garay and T.~Rabin, ``Fast batch verification for modular exponentiation and digital signatures,'' in
+\emph{EUROCRYPT 1998}, pp.~236--250.
+\bibitem{girault} M.~Girault, ``Self-certified public keys,'' in \emph{EUROCRYPT 1991}, pp.~490--497.
+\bibitem{chiou89} G.-H. Chiou and W.-T. Chen, ``Secure broadcasting using the secure lock,'' \emph{IEEE Trans. Softw. Eng.}, vol.~15, no.~8,
+pp.~929--934, 1989.
+\bibitem{sp24} P.~Sharma and B.~R. Purushothama, ``Proving the (in)security of CRT based key management schemes under SAOA model,''
+\emph{Wireless Pers. Commun.}, vol.~134, no.~3, pp.~1299--1321, 2024.
+\bibitem{lll} A.~K. Lenstra, H.~W. Lenstra Jr. and L.~Lov\'asz, ``Factoring polynomials with rational coefficients,'' \emph{Math. Ann.}, vol.~261,
+pp.~515--534, 1982.
+\bibitem{castro99} M.~Castro and B.~Liskov, ``Practical Byzantine fault tolerance,'' in \emph{OSDI 1999}, pp.~173--186.
+\bibitem{bdtw01} D.~Boneh, X.~Ding, G.~Tsudik and C.~M. Wong, ``A method for fast revocation of public key certificates and security capabilities,''
+in \emph{USENIX Security Symposium}, 2001.
+\bibitem{cbn06} S.~S.~M. Chow, C.~Boyd and J.~M. Gonz\'alez Nieto, ``Security-mediated certificateless cryptography,'' in \emph{PKC 2006}, pp.~508--524.
+\bibitem{rfc9591} D.~Connolly, C.~Komlo, I.~Goldberg and C.~A. Wood, ``The Flexible Round-Optimized Schnorr Threshold (FROST) protocol for two-round
+Schnorr signatures,'' RFC 9591, 2024.
+\bibitem{ros21} F.~Benhamouda, T.~Lepoint, J.~Loss, M.~Orr\`u and M.~Raykova, ``On the (in)security of ROS,'' in \emph{EUROCRYPT 2021}.
+\bibitem{blanchet16} B.~Blanchet, ``Modeling and verifying security protocols with the applied pi calculus and ProVerif,'' \emph{Found. Trends Priv.
+Secur.}, vol.~1, no.~1--2, pp.~1--135, 2016.
+\end{thebibliography}
 \end{document}

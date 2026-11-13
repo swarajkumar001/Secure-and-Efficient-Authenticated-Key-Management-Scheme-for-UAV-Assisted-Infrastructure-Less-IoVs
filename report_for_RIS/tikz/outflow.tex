@@ -1,0 +1,14 @@
+\resizebox{0.9\linewidth}{!}{%
+\begin{tikzpicture}[font=\sffamily\small]
+  \node[fio=deep,text width=2.4cm] (b0) at (0,1.1) {record broadcast\\ $\{a_k\}$ (before)};
+  \node[fio=deep,text width=2.4cm] (b1) at (0,-1.1) {record broadcast\\ $\{a'_k\}$ (after)};
+  \node[fproc=bad,text width=2.9cm] (s) at (4.4,0) {sums $S=-a_{n-1}$,\\ $S'=-a'_{n'-1}$;\\ $\sigma=|S-S'|$};
+  \node[fdec=bad] (d) at (8.0,0) {leave or\\ join?};
+  \node[fproc=bad,text width=2.6cm] (l) at (11.6,1.3) {leave: $q_0=a_1+\sigma a'_1$};
+  \node[fproc=bad,text width=2.6cm] (j) at (11.6,-1.3) {join: $p_0=a'_1+\sigma a_1$};
+  \node[fproc=vehc,text width=2.6cm] (r) at (15.2,0) {full product\\ $\Rightarrow$ integer roots\\ $\Rightarrow$ all $\sigma_i$};
+  \node[fstart=bad,text width=2.4cm] (o) at (18.6,0) {\textbf{old and new}\\ group keys};
+  \draw[flow] (b0.east) -- (s.west); \draw[flow] (b1.east) -- (s.west); \draw[flow] (s) -- (d);
+  \draw[flow] (d.north) |- node[lbl,pos=0.3,left]{$n'=n-1$} (l.west); \draw[flow] (d.south) |- node[lbl,pos=0.3,left]{$n'=n+1$} (j.west);
+  \draw[flow] (l.east) -| (r.north); \draw[flow] (j.east) -| (r.south); \draw[flow] (r) -- (o);
+\end{tikzpicture}}

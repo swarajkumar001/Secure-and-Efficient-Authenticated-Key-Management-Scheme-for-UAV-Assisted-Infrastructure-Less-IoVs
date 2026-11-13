@@ -1,0 +1,18 @@
+\resizebox{0.9\linewidth}{!}{%
+\begin{tikzpicture}[font=\sffamily\small]
+  \node[ent=hoc]  (t) at (0,0)  {TUAV $\Ta$};
+  \node[ent=uavc] (u) at (11,0) {UAV $\U_i$ \;($\times n$)};
+  \node[ent=deep,dashed,minimum width=2cm] (ta) at (5.5,0) {TA (offline)};
+  \draw[life] (t.south) -- ++(0,-9.6);  \draw[life] (u.south) -- ++(0,-9.6);
+  \draw[black!15,line width=4pt] (ta.south) -- ++(0,-9.6);
+  \node[font=\scriptsize\sffamily,text=black!45,rotate=90] at (5.5,-5.6) {never contacted};
+  \node[act=hoc,anchor=north] at (0,-0.9) {UA1: pick $e_a$, $E_a=e_aP$;\\ sign $(\ID_a,E_a,\ts_a)$};
+  \draw[msg=hoc] (0,-2.0) -- node[lbl,above]{UA1 \;signed beacon $\langle \ID_a,X_a,Y_a,E_a,\ts_a,R_a,v_a\rangle$} (11,-2.0);
+  \node[act=uavc,anchor=north] at (11,-2.3) {verify beacon; pick $e_i,r_i$\\ $E_i=e_iP$, \;$R_i=r_iP$, \;$v_i=r_i+c_i\sk_i$};
+  \draw[msg=uavc] (11,-3.9) -- node[lbl,above]{UA2 \;$\langle \PID_i,\ep,X_i,Y_i,E_i,\ts_i,R_i,v_i\rangle$} (0,-3.9);
+  \node[act=hoc,anchor=north] at (0,-4.2) {UA3: weighted batch check ;\\ on failure $\to$ individual fallback};
+  \node[act=hoc,anchor=north] at (0,-5.4) {UA4: $K_i=\KDF(e_aE_i\cat\dots)$\\ $C_i=\Enc(K_i,\GK\cat\nu)$};
+  \draw[msg=hoc] (0,-6.8) -- node[lbl,above]{UA4 \;$\langle \ID_a,\ts_3,\nu,\{\Hd(\PID_i),C_i\}\rangle$ \;(one broadcast)} (11,-6.8);
+  \node[act=uavc,anchor=north] at (11,-7.1) {UA5: $K_i=\KDF(e_iE_a\cat\dots)$; open $C_i$\\ $\Rightarrow$ TUAV authentic; erase $e_i$};
+  \node[draw=good,fill=good!10,rounded corners,font=\scriptsize\sffamily\bfseries,text=good] at (5.5,-9.0) {mutual authentication + shared $\GK$ in one local round trip};
+\end{tikzpicture}}

@@ -1,0 +1,12 @@
+\begin{tikzpicture}[font=\sffamily\small]
+  \pic[color=hoc,scale=1.7] at (0,3.3) {drone};
+  \node[card=tether,anchor=west,text width=4.6cm] at (1.3,3.3) {\textbf{drone share} \;$a=x_A$\\ alone it signs nothing};
+  \draw[tether,line width=1.6pt,decorate,decoration={snake,amplitude=0.6mm,segment length=4mm}] (0,2.65) -- (0,0.85);
+  \node[font=\scriptsize\sffamily\bfseries,text=tether,align=left,anchor=west] at (0.25,1.75) {tether:\\ power + data};
+  \pic[color=hoc,scale=1.8] at (0,0.35) {truck};
+  \pic[color=vehc,scale=1.3] at (-1.6,0.45) {chip};
+  \node[card=vehc,anchor=west,text width=4.6cm] at (1.3,0.35) {\textbf{chip share} \;$g=x_G+d$\\ in a SIM-sized secure chip\\ inside the ECRV};
+  \node[card=deep,text width=5.0cm] at (10.3,1.85) {\textbf{public key unchanged}\\[2pt] $\pk=aP+gP=X+Y+h\Ppub$\\[2pt] nobody ever holds $a+g$};
+  \draw[-{Stealth[length=3mm]},thick,deep] (6.15,3.3) -- (7.7,2.3);
+  \draw[-{Stealth[length=3mm]},thick,deep] (6.15,0.35) -- (7.7,1.4);
+\end{tikzpicture}

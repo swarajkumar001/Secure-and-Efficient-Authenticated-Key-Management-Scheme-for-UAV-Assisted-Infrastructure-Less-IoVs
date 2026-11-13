@@ -1,0 +1,14 @@
+\begin{tikzpicture}
+\begin{axis}[width=0.86\linewidth,height=6.4cm,ymode=log,xmin=10,xmax=200,ymin=0.5,ymax=1e6,
+  xlabel={number of UAVs $n$},ylabel={key-distribution traffic (KB)},grid=major,grid style={black!8},
+  tick label style={font=\small},label style={font=\small},legend style={font=\small,at={(0.02,0.97)},anchor=north west,draw=black!30}]
+  \addplot[very thick,color=plotB,domain=10:200,samples=60] {20*x*(x*(x-1)/2+x+1)/1000};
+  \addlegendentry{base: $n$ ACKs, each with all coefficients}
+  \addplot[very thick,color=plotA,domain=10:200,samples=60] {80*x/1000};
+  \addlegendentry{C1: one broadcast, $\approx80$ bytes per member}
+  \addplot[only marks,mark=*,mark size=2.5pt,color=plotB] coordinates {(120,17426)};
+  \addplot[only marks,mark=*,mark size=2.5pt,color=plotA] coordinates {(120,9.6)};
+  \node[font=\small,text=plotB,anchor=south east] at (axis cs:118,20000) {17.4\,MB};
+  \node[font=\small,text=plotA,anchor=south east] at (axis cs:118,11) {9.6\,KB};
+\end{axis}
+\end{tikzpicture}

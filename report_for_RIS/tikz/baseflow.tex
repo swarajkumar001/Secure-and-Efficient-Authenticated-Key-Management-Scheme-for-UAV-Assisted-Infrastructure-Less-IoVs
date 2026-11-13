@@ -1,0 +1,18 @@
+\resizebox{0.9\linewidth}{!}{%
+\begin{tikzpicture}[font=\sffamily\small]
+  \node[ent=uavc] (u) at (0,0) {UAV $\U_i$};
+  \node[ent=hoc]  (t) at (6.6,0) {TUAV};
+  \node[ent=deep] (a) at (13.2,0) {TA (via satellite)};
+  \foreach \n in {u,t,a}{\draw[life] (\n.south) -- ++(0,-11.2);}
+  \draw[msg=hoc] (6.6,-1.1) -- node[lbl,above]{IS5 \;$\langle \ts_{tu},\ID_{tu},R_{tu},Q_{tu}\rangle$ (broadcast)} (0,-1.1);
+  \node[act=uavc,anchor=north] at (0,-1.4) {US1--US2: pick $r_i$; \;$\xi_i=h_1(r_i)$\\ $\ID_i=h_3(id_i,\ts_2,\xi_i)$, \;$\upsilon_i$, \;$\Gamma_i$};
+  \draw[msg=uavc] (0,-3.0) -- node[lbl,above]{US3 \;$\langle\text{Request},\ts_2,\ID_i,\xi_i,\upsilon_i,\Gamma_i\rangle$} (6.6,-3.0);
+  \draw[msg=deep,dashed] (6.6,-3.8) -- node[lbl,above]{GA1 \;upload $\langle\ts_2,\ID_i,\xi_i,\upsilon_i\rangle$ \;(satellite)} (13.2,-3.8);
+  \node[act=deep,anchor=north] at (13.2,-4.1) {GA2: find $\langle id_i,s_i\rangle$; compute\\ $\sigma_i,\ \psi_i,\ \mu_i,\ \delta_i$\\ (3 pairings per UAV)};
+  \draw[msg=deep,dashed] (13.2,-5.9) -- node[lbl,above]{GA2 \;$\langle\sigma_i,\psi_i,\mu_i,\delta_i\rangle$ \;(satellite)} (6.6,-5.9);
+  \node[act=hoc,anchor=north] at (6.6,-6.2) {GA3--GA4: one product check\\ GD1--GD3: $\omega_i,\varphi_i,\kappa_{tu}$, \;$\Lambda(x)$, \;$S_i$};
+  \draw[msg=hoc] (6.6,-8.0) -- node[lbl,above]{GD4 \;$\langle\text{ACK},\ts_3,\ID_i,S_i,\{a_k\}_{k=0}^{n}\rangle$ \;(to each UAV)} (0,-8.0);
+  \node[act=uavc,anchor=north] at (0,-8.3) {GD5: check $S_i$\\ GD6: $\kappa_{tu}=\Lambda(\sigma_i)\bmod\sigma_i$};
+  \node[draw=deep,fill=deep!6,rounded corners,font=\scriptsize\sffamily,text=deep,align=center] at (9.9,-10.3)
+    {dashed arrows cross the satellite link; the coefficients $\{a_k\}$ travel in the clear};
+\end{tikzpicture}}
