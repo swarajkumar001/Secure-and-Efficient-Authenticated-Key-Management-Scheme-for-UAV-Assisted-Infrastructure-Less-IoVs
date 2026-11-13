@@ -40,7 +40,7 @@ cable, a power loss, an interceptor, or the ECRV driving away. C4 ties the key t
   \draw[-{Stealth[length=3mm]},thick,deep] (6.15,3.3) -- (7.7,2.3);
   \draw[-{Stealth[length=3mm]},thick,deep] (6.15,0.35) -- (7.7,1.4);
 \end{tikzpicture}
-\caption{The split. Each share alone is useless; together they produce an ordinary signature under the TUAV's usual public key.}
+\caption{The tether-split key (C4). The drone holds the share $a$ and a secure chip in the ECRV holds the share $g$; the two are connected by the tether. The public key $\pk=aP+gP$ is unchanged, and no single device holds the full key $a+g$.}
 \label{fig:split}
 \end{figure}
 
@@ -83,7 +83,7 @@ increasing, and no other session is open. Pick $r_G$ and send $R_G=r_GP$.\\
   \node[act=uavc,anchor=north] at (13.2,-7.9) {$vP\overset{?}{=}R+c\,\pk$\\ (unchanged check)};
   \node[draw=tether,fill=tether!8,rounded corners,font=\scriptsize\sffamily\bfseries,text=tether] at (3.3,-9.6) {two short exchanges over the wire, about 200 bytes};
 \end{tikzpicture}}
-\caption{Joint signing over the tether. The commitment in \ding{172} forces the drone to fix its nonce before it sees the chip's.}
+\caption{Joint signing over the tether (steps J1--J5). Messages \ding{172}--\ding{175} travel on the tether between the drone and the chip; the final signature $(R,v)$ is sent by radio and is verified with the usual check. The commitment in \ding{172} forces the drone to fix its nonce before it sees the chip's.}
 \label{fig:c4flow}
 \end{figure}
 
@@ -129,16 +129,6 @@ sessions to forge -- the ROS attack~\cite{ros21}. Use commit-then-reveal with on
 protocol~\cite{frost20,rfc9591} if concurrency is needed.
 \end{remark}
 
-\begin{workedbox}[title={Example 10.1 -- the textbook curve $y^2=x^3+2x+2$ over $\mathbb F_{17}$, $P=(5,1)$, order 19~\cite{paar}}]
-\textbf{Setup.} TA: $s=8$, $\Ppub=8P=(13,7)$; \;$y=11$, $Y=11P=(13,10)$; \;take $h=10$, so $h\Ppub=80P=4P=(3,1)$;
-\;$d=11+8\cdot10=91\equiv\mathbf{15}$ (check: $15P=Y+h\Ppub=11P+4P$ \yes).\\
-Drone $x_A=6$, $X_A=6P=(16,13)$; \;chip $x_G=7$, $X_G=7P=(0,6)$; \;$X=13P=(16,4)$.\\
-Shares: $\mathbf{a=6}$, \;$\mathbf{g=7+15=22\equiv3}$. \;$\pk=X+Y+h\Ppub=13P+11P+4P=28P\equiv9P=(7,6)$; nobody holds $a+g=9$.\\[4pt]
-\textbf{Joint signature.} $r_A=5$: $R_A=5P=(9,16)$; \;$r_G=12$: $R_G=12P=(0,11)$; \;$R=17P=(6,14)$; \;take $c=2$.
-$v_A=5+2\cdot6=17$, \;$v_G=12+2\cdot3=18$, \;$v=35\equiv\mathbf{16}$. Check: $vP=16P=(10,11)$ and $R+c\,\pk=17P+18P=35P\equiv16P$ \yes.\\[4pt]
-\textbf{Thief with only $a=6$.} $r'=3$: $R'=3P=(10,6)$; take $c'=5$; $v'=3+5\cdot6=33\equiv14$, so $v'P=14P=(9,1)$. Needed: $R'+c'\pk=3P+45P\equiv10P=(7,11)$.
-$14P\neq10P$ \no\ \textbf{rejected}. The missing piece is $c'gP=15P=(3,16)$, which only the chip can add.
-\end{workedbox}
 
 \section{When the tether is cut}
 \begin{figure}[H]
@@ -153,7 +143,7 @@ $14P\neq10P$ \no\ \textbf{rejected}. The missing piece is $c'gP=15P=(3,16)$, whi
   \node[card=uavc,text width=3.4cm,anchor=south] at (8.6,0.45) {no new beacon can be signed; old ones expire after $\delta$; members leave};
   \node[card=good,text width=3.4cm,anchor=south] at (12.6,0.45) {members re-join a neighbour by the \textbf{full join} (fresh ECDH); old keys useless};
 \end{tikzpicture}}
-\caption{What happens after a cut: the thief holds half a key and an old group key that dies at the next rekey.}
+\caption{Timeline after the tether is cut. The chip stops signing at once, the ECRV broadcasts the stored kill notice, old beacons expire after the period $\delta$, and members re-join a neighbouring TUAV with fresh keys.}
 \label{fig:cut}
 \end{figure}
 

@@ -5,29 +5,34 @@
 \begin{document}
 % ============================== title page (course template) ==============================
 \begin{titlepage}
+\begin{tikzpicture}[remember picture,overlay]
+  \draw[black,line width=1.2pt] ([xshift=1.3cm,yshift=-1.3cm]current page.north west) rectangle ([xshift=-1.3cm,yshift=1.3cm]current page.south east);
+\end{tikzpicture}
 \centering
-\vspace*{1.2cm}
-{\fontsize{23}{28}\selectfont\bfseries Cutting the Cord: Trust Without the TA\par}
+\vspace*{1.0cm}
+{\fontsize{21}{26}\selectfont\bfseries Cutting the Cord: Trust Without the TA\par}
 \vspace{0.3cm}
-{\Large Security Analysis and Improvements of a TUAV-Assisted\\ Key Management Scheme for Infrastructure-Less IoVs\par}
+{\Large Security Analysis and Improvements of a TUAV-Assisted\ Key Management Scheme for Infrastructure-Less IoVs\par}
 \vspace{0.6cm}
 {\large CS8.501 -- Research in Information Security\par}
 {\large Project Report\par}
 \vspace{1.0cm}
-{\large Submitted by: Team 6\par}
+{\large Submitted by:\par}
 \vspace{0.2cm}
-{\large Swaraj Kumar\par}
-{\large Hritik Ranjan\par}
-{\large Harsh Raj\par}
-\vspace{0.3cm}
+{\large\begin{tabular}{l@{\hspace{1.2cm}}l}
+Swaraj Kumar & Roll Number: 2025202016\\
+Hritik Ranjan & Roll Number: 2025202031\\
+Harsh Raj & Roll Number: 2025202005\\
+\end{tabular}\par}
+\vspace{0.4cm}
 {\large Department: Computer Science and Information Security\par}
 \vspace{0.6cm}
 {\large Date of Submission: November 17, 2026\par}
-\vspace{1.4cm}
-\includegraphics[width=0.62\linewidth]{iiith_logo.png}\par
+\vspace{1.3cm}
+\includegraphics[width=0.6\linewidth]{iiith_logo.png}\par
 \vfill
 {\Large International Institute of Information Technology, Hyderabad\par}
-\vspace{0.8cm}
+\vspace{0.6cm}
 \end{titlepage}
 
 % ============================== abstract ==============================
@@ -42,8 +47,8 @@ We first study the paper in detail: its motivation, system model, the five proto
 performance claims. We then check those claims against the paper's own equations. We prove three weaknesses: the TA can sign as any
 UAV (F1), the CRT group key leaks every member's key -- even to a passive outsider who compares two broadcasts (F2), and one leaked long-term secret
 opens all past group keys (F3). We then propose four contributions: authentication with the TA offline and a separately sealed key for every member
-(C1), handover between TUAVs (C2), voting out a compromised TUAV (C3) and splitting the TUAV's key across its tether (C4). Each result comes with a
-theorem, a worked example and a diagram.
+(C1), handover between TUAVs (C2), voting out a compromised TUAV (C3) and splitting the TUAV's key across its tether (C4). Each result is stated as a
+theorem with a proof and is illustrated with a diagram.
 
 \tableofcontents
 \listoffigures
@@ -72,7 +77,6 @@ theorem, a worked example and a diagram.
 \input{chapters/12_results}
 \input{chapters/13_related}
 \input{chapters/14_conclusion}
-\input{chapters/team}
 
 \input{chapters/refs}
 \end{document}

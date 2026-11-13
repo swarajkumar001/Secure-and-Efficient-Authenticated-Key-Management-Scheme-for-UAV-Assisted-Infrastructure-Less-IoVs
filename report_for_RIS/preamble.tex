@@ -23,37 +23,37 @@
 \usetikzlibrary{arrows.meta,positioning,shapes.geometric,shapes.misc,fit,backgrounds,calc,shadows,decorations.pathreplacing,decorations.pathmorphing}
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.17}
-\usepackage[colorlinks=true,linkcolor=deep,citecolor=uavc,urlcolor=uavc]{hyperref}
+\usepackage[hidelinks]{hyperref}
 
 % ---------------- palette ----------------
-\definecolor{deep}{HTML}{0B3954}     % navy    -- TA, overview
-\definecolor{uavc}{HTML}{087E8B}     % teal    -- UAVs, C1
-\definecolor{vehc}{HTML}{6A4C93}     % violet  -- maths
-\definecolor{hoc}{HTML}{E07A1F}      % amber   -- TUAV, C3
-\definecolor{tether}{HTML}{B5179E}   % magenta -- C5
-\definecolor{quorum}{HTML}{1D5FA8}   % blue    -- C4
-\definecolor{bad}{HTML}{C81D25}      % red     -- flaws, attacks
-\definecolor{good}{HTML}{2A9D3F}     % green   -- holds, fixed
-\definecolor{ink}{HTML}{1F2933}
-\definecolor{sun}{HTML}{F4B400}
+\definecolor{deep}{HTML}{000000}
+\definecolor{uavc}{HTML}{4D4D4D}
+\definecolor{vehc}{HTML}{737373}
+\definecolor{hoc}{HTML}{595959}
+\definecolor{tether}{HTML}{808080}
+\definecolor{quorum}{HTML}{666666}
+\definecolor{bad}{HTML}{000000}
+\definecolor{good}{HTML}{737373}
+\definecolor{ink}{HTML}{000000}
+\definecolor{sun}{HTML}{BFBFBF}
+\definecolor{plotA}{HTML}{1F77B4}\definecolor{plotB}{HTML}{D62728}\definecolor{plotC}{HTML}{2CA02C}\definecolor{plotD}{HTML}{FF7F0E}\definecolor{plotE}{HTML}{7F7F7F}
 
 \color{ink}
-\captionsetup{font=small,labelfont={bf,color=deep}}
+\captionsetup{font=small,labelfont=bf,justification=justified}
 \setlist{itemsep=2pt,topsep=4pt}
 \renewcommand{\arraystretch}{1.18}
 \setlength{\parskip}{3pt}
 
 % ---------------- headings ----------------
-\titleformat{\chapter}[display]{\bfseries\sffamily\color{deep}}{\large\color{uavc}CHAPTER \thechapter}{4pt}{\huge}
-\titlespacing*{\chapter}{0pt}{0pt}{14pt}
+\titleformat{\chapter}[display]{\bfseries\sffamily\color{deep}}{\normalsize\color{uavc}CHAPTER \thechapter}{2pt}{\LARGE}
+\titleclass{\chapter}{straight}
+\titlespacing*{\chapter}{0pt}{30pt}{10pt}
 \titleformat{\section}{\Large\bfseries\sffamily\color{deep}}{\thesection}{0.8em}{}
 \titleformat{\subsection}{\large\bfseries\sffamily\color{uavc}}{\thesubsection}{0.7em}{}
 \titleformat{\subsubsection}{\normalsize\bfseries\sffamily\color{ink}}{\thesubsubsection}{0.6em}{}
 \pagestyle{fancy}\fancyhf{}
-\fancyhead[L]{\small\sffamily\color{deep}CS8.501 Research in Information Security -- Project Report}
-\fancyhead[R]{\small\sffamily\color{deep}Team 6}
 \fancyfoot[C]{\small\sffamily\thepage}
-\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrulewidth}{0pt}
 
 % ---------------- theorem-like environments (numbered per chapter) ----------------
 \theoremstyle{plain}
@@ -74,7 +74,7 @@
 
 % ---------------- coloured boxes ----------------
 \newtcolorbox{claimbox}[1][]{enhanced,breakable,colback=deep!4,colframe=deep,boxrule=0.6pt,arc=2mm,
-  fonttitle=\sffamily\bfseries,title={What the base paper says (quoted)},#1}
+  fonttitle=\sffamily\bfseries,title={Quoted from the base paper},#1}
 \newtcolorbox{flawbox}[1][]{enhanced,breakable,colback=bad!5,colframe=bad,boxrule=0.7pt,arc=2mm,fonttitle=\sffamily\bfseries,#1}
 \newtcolorbox{fixbox}[1][]{enhanced,breakable,colback=uavc!6,colframe=uavc,boxrule=0.7pt,arc=2mm,fonttitle=\sffamily\bfseries,#1}
 \newtcolorbox{plainbox}[1][]{enhanced,breakable,colback=good!7,colframe=good!80!black,boxrule=0.6pt,arc=2mm,
@@ -83,7 +83,7 @@
 \newtcolorbox{keybox}[1][]{enhanced,breakable,colback=deep!5,colframe=deep,boxrule=0.6pt,arc=2mm,
   fonttitle=\sffamily\bfseries,title={Key idea},#1}
 \newtcolorbox{limitbox}[1][]{enhanced,breakable,colback=black!3,colframe=black!55,boxrule=0.6pt,arc=2mm,
-  fonttitle=\sffamily\bfseries,title={Scope and honest limits},#1}
+  fonttitle=\sffamily\bfseries,title={Limitations},#1}
 \newtcolorbox{algobox}[2][]{enhanced,breakable,colback=white,colframe=vehc,boxrule=0.8pt,arc=2mm,
   fonttitle=\sffamily\bfseries,coltitle=white,colbacktitle=vehc,title={#2},#1}
 \newcounter{algo}[chapter]
@@ -122,8 +122,8 @@
 \newcommand{\Ta}{\mathcal{T}_a}
 \newcommand{\Tb}{\mathcal{T}_b}
 \newcommand{\cat}{\,\|\,}
-\newcommand{\yes}{\textcolor{good}{\ding{51}}}
-\newcommand{\no}{\textcolor{bad}{\ding{55}}}
+\newcommand{\yes}{\ding{51}}
+\newcommand{\no}{\ding{55}}
 \newcommand{\steplabel}[2]{\textcolor{#1}{\textsf{\textbf{#2}}}}
 \newcommand{\badge}[2]{\tikz[baseline=(t.base)]\node[fill=#1,text=white,rounded corners=2pt,inner sep=2pt,font=\scriptsize\sffamily\bfseries](t){#2};}
 

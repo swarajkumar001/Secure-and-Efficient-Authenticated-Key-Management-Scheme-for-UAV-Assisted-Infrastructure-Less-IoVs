@@ -49,7 +49,7 @@ A set of votes $\mathcal C$ is a valid certificate against $T_{\mathrm{target}}$
   \draw[bad,line width=1.6pt] (-2.6,0.5) -- (-1.0,0.1);
   \draw[bad,line width=2pt] (-1.95,0.55) -- ++(0.3,-0.3) (-1.95,0.25) -- ++(0.3,0.3);
 \end{tikzpicture}}
-\caption{C3: three TUAVs see evidence, vote, and the certificate reaches the members of the compromised TUAV.}
+\caption{Quorum eviction (C3). The neighbours $T_1,T_2,T_3$ obtain evidence against the compromised TUAV $T_7$ (dashed arrows) and each signs a vote. At least $t$ distinct votes form an eviction certificate, which is delivered to the members of $T_7$; they verify it and re-join a neighbour.}
 \label{fig:c3vote}
 \end{figure}
 
@@ -78,7 +78,7 @@ join UA1--UA5 -- never with a C2 ticket from the evicted TUAV. Neighbouring TUAV
   \draw[flow] (in) -- (v1); \draw[flow] (v1) -- node[lbl,above]{yes} (v2); \draw[flow] (v2) -- node[lbl,above]{yes} (v4); \draw[flow] (v4) -- node[lbl,above]{yes} (ok);
   \draw[flow] (v1) |- node[lbl,pos=0.3,left]{no} (no); \draw[flow] (v2) -- node[lbl,right]{no} (no); \draw[flow] (v4) |- node[lbl,pos=0.3,right]{no} (no);
 \end{tikzpicture}}
-\caption{Flowchart: how a member checks an eviction certificate.}
+\caption{Flowchart of how a member checks an eviction certificate against the four conditions V1--V4 of Definition~\ref{def:cert}. Only if all conditions hold does the member leave its TUAV.}
 \label{fig:c3flow}
 \end{figure}
 

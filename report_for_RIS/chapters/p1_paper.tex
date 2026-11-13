@@ -16,29 +16,29 @@ long time and act as a mobile base station and edge server.
 \centering
 \resizebox{0.92\linewidth}{!}{%
 \begin{tikzpicture}[font=\sffamily\small]
-  \node[card=deep,text width=5.6cm,minimum height=3.3cm] (a) at (0,0) {};
-  \node[font=\sffamily\bfseries,text=deep] at (0,1.3) {Normal IoV};
+  \node[card=deep,text width=5.6cm,minimum height=4.0cm] (a) at (0,0) {};
+  \node[font=\sffamily\bfseries,text=deep] at (0,1.65) {Normal IoV};
   \pic[color=deep,scale=1.1] at (0,0.35) {tower};
   \foreach \x in {-1.6,-0.5,0.6,1.7}{\pic[color=vehc,scale=0.8] at (\x,-0.9) {car};}
-  \node[font=\scriptsize\sffamily,text=deep] at (0,-1.45) {vehicles talk through the RSU};
-  \node[card=bad,text width=5.6cm,minimum height=3.3cm] (b) at (7,0) {};
-  \node[font=\sffamily\bfseries,text=bad] at (7,1.3) {After a disaster};
+  \node[font=\scriptsize\sffamily,text=deep] at (0,-1.6) {vehicles talk through the RSU};
+  \node[card=bad,text width=5.6cm,minimum height=4.0cm] (b) at (7,0) {};
+  \node[font=\sffamily\bfseries,text=bad] at (7,1.65) {After a disaster};
   \pic[color=black!45,scale=1.1] at (7,0.35) {tower};
   \draw[bad,line width=2pt] (6.6,-0.15) -- (7.4,0.85) (6.6,0.85) -- (7.4,-0.15);
   \foreach \x in {5.4,6.5,7.6,8.7}{\pic[color=vehc,scale=0.8] at (\x,-0.9) {car};}
-  \node[font=\scriptsize\sffamily,text=bad] at (7,-1.45) {RSU down: no V2I link};
-  \node[card=hoc,text width=5.6cm,minimum height=3.3cm] (c) at (14,0) {};
-  \node[font=\sffamily\bfseries,text=hoc] at (14,1.3) {The paper's idea};
+  \node[font=\scriptsize\sffamily,text=bad] at (7,-1.6) {RSU down: no V2I link};
+  \node[card=hoc,text width=5.6cm,minimum height=4.0cm] (c) at (14,0) {};
+  \node[font=\sffamily\bfseries,text=hoc] at (14,1.65) {The paper's idea};
   \pic[color=hoc,scale=0.9] at (13.3,0.75) {drone};
   \draw[tether,line width=1.4pt] (13.3,0.4) -- (13.3,-0.55);
   \pic[color=hoc,scale=0.9] at (13.3,-0.8) {truck};
   \pic[color=uavc,scale=0.6] at (14.6,0.8) {drone};
   \pic[color=uavc,scale=0.6] at (15.4,0.3) {drone};
-  \node[font=\scriptsize\sffamily,text=hoc] at (14,-1.45) {TUAV on a tether + UAVs};
+  \node[font=\scriptsize\sffamily,text=hoc] at (14,-1.6) {TUAV on a tether + UAVs};
   \draw[-{Stealth[length=3mm]},very thick,black!50] (a.east) -- (b.west);
   \draw[-{Stealth[length=3mm]},very thick,black!50] (b.east) -- (c.west);
 \end{tikzpicture}}
-\caption{The motivation of the base paper: when roadside units fail, a tethered drone powered by a fire truck takes their place.}
+\caption{Motivation of the base paper. Left: in a normal IoV, vehicles communicate through a roadside unit (RSU). Middle: after a disaster the RSU is down and the vehicle-to-infrastructure link is lost. Right: the paper's idea -- a tethered UAV (TUAV), powered through a cable by a ground vehicle (ECRV), acts as the base station, and battery UAVs extend its coverage.}
 \label{fig:motivation}
 \end{figure}
 

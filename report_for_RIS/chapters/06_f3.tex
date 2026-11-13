@@ -43,15 +43,10 @@ The TA stores every $s_i$ (IS2), so it can apply Theorem~\ref{thm:retro} to any 
   \foreach \x in {1.6,4.6,7.6}{\draw[-{Stealth[length=2.6mm]},thick,bad,dashed] (12.0,-0.25) .. controls (11,-1.6) and (\x+1,-1.6) .. (\x,-0.75);}
   \node[font=\scriptsize\sffamily\bfseries,text=bad] at (6.6,-1.9) {$\kappa^{(t)}=\Lambda^{(t)}(\sigma_i^{(t)})\bmod\sigma_i^{(t)}$ for every past session};
 \end{tikzpicture}}
-\caption{Why forward secrecy fails: everything needed to rebuild old keys is either public or long-term.}
+\caption{Timeline of the forward-secrecy failure. In each past session the attacker records the public values $\xi_i^{(t)}$ and $\{a_k^{(t)}\}$. When the long-term secret $s_i$ leaks later, the attacker recomputes the group key of every recorded session (dashed arrows).}
 \label{fig:f3time}
 \end{figure}
 
-\begin{workedbox}[title={Example 6.1 -- tying it to Example 5.1}]
-Suppose the UAV whose key was $\sigma=7$ in Example~5.1 is captured a week later and its $s_i$ is read out. From the recorded $\xi_i$ the thief computes
-$\sigma_i=h_1(s_i\xi_i)P$, i.e.\ the value $7$; from the recorded broadcast $x^3-31x^2+311x+9014$ it computes $\Lambda(7)=10015$ and $10015\bmod7=\mathbf{5}$
--- last week's group key. By Theorem~\ref{thm:insider} it also learns $11$ and $13$, and with them every key update of that session.
-\end{workedbox}
 
 \begin{remark}[Root cause]
 Forward secrecy needs a secret that exists only during the session and is then erased -- typically an ephemeral Diffie--Hellman exponent. In the base

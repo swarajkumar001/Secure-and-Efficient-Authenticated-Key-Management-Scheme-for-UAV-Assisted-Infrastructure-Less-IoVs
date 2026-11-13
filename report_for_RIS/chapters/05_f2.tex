@@ -60,47 +60,11 @@ any recorded earlier broadcast $\Lambda$ and any old member $j$, it computes the
   \draw[flow] (in) -- (c); \draw[flow] (c) -- (p); \draw[flow] (p) -- (r); \draw[flow] (r) -- (d);
   \draw[flow] (d) |- node[lbl,pos=0.3,left]{revoked} (a); \draw[flow] (d) |- node[lbl,pos=0.3,left]{newcomer} (b);
 \end{tikzpicture}}
-\caption{Flowchart of the insider attack. The only computation beyond the member's normal work is one subtraction and one root-finding step.}
+\caption{Flowchart of the insider attack (Theorem~\ref{thm:insider}). A member evaluates the broadcast polynomial at its own key, subtracts the result and finds the roots; this gives every member's key. Depending on what happens later, the same member can break revocation, F2(a), or backward secrecy, F2(b).}
 \label{fig:insiderflow}
 \end{figure}
 
-\subsection*{Worked example (all numbers can be checked by hand)}
-\begin{workedbox}[title={Example 5.1 -- three UAVs with $\sigma=7,11,13$ and group key $\kappa=5$}]
-\textbf{GD1--GD2.} $\omega=(143,91,77)$, \;$\varphi=(5,4,12)$ (since $143\equiv3\pmod7$ and $3\cdot5\equiv1$, etc.), \;$\sum\omega_i\varphi_i=2003$, which
-leaves remainder $1$ modulo $7$, $11$ and $13$. Then
-\[ \Lambda(x)=5\cdot2003+(x-7)(x-11)(x-13)=x^3-31x^2+311x+9014,\qquad \{a_k\}=[1,\,-31,\,311,\,9014]. \]
-Every member gets the key: $\Lambda(7)=\Lambda(11)=\Lambda(13)=10015$ and $10015\bmod7=10015\bmod11=10015\bmod13=5$.\\[4pt]
-\textbf{Insider ($\sigma=7$).} $C=\Lambda(7)=10015$; \;$\Lambda(x)-10015=x^3-31x^2+311x-1001=(x-7)(x-11)(x-13)$ $\Rightarrow$ it learns $11$ and $13$.\\[4pt]
-\textbf{F2(a).} The TUAV removes it and sends $\kappa^*=9$ for $\{11,13\}$: $\sum\omega_i\varphi_i=13\cdot6+11\cdot6=144$, so
-$\Lambda^*(x)=9\cdot144+(x-11)(x-13)=x^2-24x+1439$. With its own $\sigma=7$: $\Lambda^*(7)\bmod7=1320\bmod7=4$ -- wrong, so revocation \emph{looks} fine.
-With the recovered $\sigma=11$: $\Lambda^*(11)=1296$ and $1296\bmod11=\mathbf{9}=\kappa^*$. \;\textcolor{bad}{\textbf{Revocation failed.}}\\[4pt]
-\textbf{F2(b).} Instead, a UAV with $\sigma=17$ joins and $\kappa^*=3$: $\omega=(2431,1547,1309,1001)$, $\varphi=(4,8,3,8)$, $\sum\omega_i\varphi_i=34035$ and
-$\Lambda^*(x)=x^4-48x^3+838x^2-6288x+119122$. The newcomer computes $\Lambda^*(17)=102105$, subtracts it, factors
-$x^4-48x^3+838x^2-6288x+17017=(x-7)(x-11)(x-13)(x-17)$, and opens the \emph{recorded} old broadcast with $\sigma=7$: $10015\bmod7=\mathbf{5}$.
-\;\textcolor{bad}{\textbf{Backward secrecy failed.}}
-\end{workedbox}
 
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}
-\begin{axis}[width=0.86\linewidth,height=6.2cm,xmin=6.2,xmax=13.8,ymin=9955,ymax=10060,
-  xlabel={$x$},ylabel={$\Lambda(x)$},grid=major,grid style={black!8},tick label style={font=\small},
-  scaled y ticks=false,y tick label style={/pgf/number format/.cd,fixed,1000 sep={}},
-  label style={font=\small},legend style={font=\small,at={(0.02,0.97)},anchor=north west,draw=black!30}]
-  \addplot[very thick,color=uavc,domain=6.2:13.8,samples=200] {x^3-31*x^2+311*x+9014};
-  \addlegendentry{$\Lambda(x)=x^3-31x^2+311x+9014$ (public)}
-  \addplot[thick,dashed,color=bad,domain=6.2:13.8] {10015};
-  \addlegendentry{$C=10015$ (same for every member)}
-  \addplot[only marks,mark=*,mark size=3pt,color=bad] coordinates {(7,10015) (11,10015) (13,10015)};
-  \node[font=\small\bfseries,text=bad] at (axis cs:7,10004) {7};
-  \node[font=\small\bfseries,text=bad] at (axis cs:11,10026) {11};
-  \node[font=\small\bfseries,text=bad] at (axis cs:13,10004) {13};
-\end{axis}
-\end{tikzpicture}
-\caption{The public polynomial of Example~5.1 crosses the \emph{same} height $C$ at every member's key. A member knows $C$; subtracting it turns the
-crossings into roots.}
-\label{fig:f2poly}
-\end{figure}
 
 \section{The passive outsider attack: F2(c)}
 The insider attack needs one $\sigma_j$. The outsider attack needs none: it uses only the public coefficients of two broadcasts.
@@ -163,23 +127,10 @@ If $n'=n+1$ (join): $p_0\leftarrow a'_1+\sigma\,a_1$; \;$f(x)\leftarrow x^{n}+a_
   \draw[flow] (d.north) |- node[lbl,pos=0.3,left]{$n'=n-1$} (l.west); \draw[flow] (d.south) |- node[lbl,pos=0.3,left]{$n'=n+1$} (j.west);
   \draw[flow] (l.east) -| (r.north); \draw[flow] (j.east) -| (r.south); \draw[flow] (r) -- (o);
 \end{tikzpicture}}
-\caption{Flowchart of the passive outsider attack (Algorithm~\ref{alg:outsider}). No registration, no secret, two recorded broadcasts.}
+\caption{Flowchart of the passive outsider attack (Algorithm~\ref{alg:outsider}). The attacker records the coefficient sets before and after one membership change, obtains the changed member's key from the two coefficient sums, removes the mask, and finds all keys and both group keys. It needs no registration and no secret.}
 \label{fig:outflow}
 \end{figure}
 
-\begin{workedbox}[title={Example 5.2 -- outsider, keys $5,7,11$; the UAV with key $5$ leaves}]
-\textbf{Broadcast before} (group key $\kappa=3$): $\sum\omega_i\varphi_i=77\cdot3+55\cdot6+35\cdot6=771$, so
-$\Lambda(x)=3\cdot771+(x-5)(x-7)(x-11)=x^3-\mathbf{23}x^2+\mathbf{167}x+1928$.\\
-\textbf{Broadcast after} (new key $\kappa^*=4$): $\sum\omega_i\varphi_i=11\cdot2+7\cdot8=78$, so $\Lambda'(x)=4\cdot78+(x-7)(x-11)=x^2-\mathbf{18}x+389$.\\[4pt]
-The eavesdropper sees only $[1,-23,167,1928]$ and $[1,-18,389]$:
-\begin{enumerate}[leftmargin=*]
-\item sums: $23$ and $18$, so the leaver's key is $\sigma=23-18=\mathbf{5}$;
-\item $q_0=a_1+\sigma a'_1=167+5\cdot(-18)=\mathbf{77}$, so the new product is $x^2-18x+77=(x-7)(x-11)$: keys $\mathbf{7}$ and $\mathbf{11}$;
-\item new key: $\Lambda'(7)=389-77=312$ and $312\bmod7=\mathbf{4}=\kappa^*$; \;old key: $\Lambda(7)=2313$ and $2313\bmod7=\mathbf{3}=\kappa$.
-\end{enumerate}
-\textcolor{bad}{\textbf{Every key of both groups, from two public broadcasts.}} A \emph{join} is the same computation with the two broadcasts swapped:
-if UAV $5$ joins $\{7,11\}$, then $p_0=167+5\cdot(-18)=77$ again.
-\end{workedbox}
 
 \subsection*{Several UAVs leaving (or joining) at once}
 DU1 is a \emph{batch} update: $\ominus$ UAVs may leave or $\oplus$ may join in one step. The same algebra extends.
@@ -199,18 +150,10 @@ The coefficient of $x^m$ then gives $q_0=p_m-\sum_{i=1}^{\min(m,r)}q_i\,d_{m-i}$
 same with the roles of the two broadcasts swapped.
 \end{proof}
 
-\begin{workedbox}[title={Example 5.3 -- two UAVs leave at once: keys $\{2,3,5,7,11\}\to\{5,7,11\}$}]
-Unmasked coefficients seen by the eavesdropper: before $p=[1,-28,288,-1358,2927,\ast]$, after $q=[1,-23,167,\ast]$.
-\begin{align*}
-d_1&=p_4-q_2=-28+23=-5, & d_0&=p_3-q_1-q_2d_1=288-167-115=6,\\
-d(x)&=x^2-5x+6=(x-2)(x-3), & q_0&=p_2-q_1d_1-q_2d_0=-1358+835+138=-385,
-\end{align*}
-so $q(x)=x^3-23x^2+167x-385=(x-5)(x-7)(x-11)$: the leavers had keys $2,3$ and the stayers have $5,7,11$.
-\end{workedbox}
 
 \begin{remark}[Scope]
 Theorem~\ref{thm:outsider} is proved for one join or one leave between two broadcasts, and Proposition~\ref{prop:batch} for batches of pure leaves or pure
-joins with more members staying than changing (shown by the proof and a hand-worked example). Two cases remain open: a \emph{single} broadcast with no
+joins with more members staying than changing. Two cases remain open: a \emph{single} broadcast with no
 second one to compare, and one update that mixes joins and leaves. We also confirmed Theorem~\ref{thm:outsider} numerically at the paper's own size
 (160-bit $\sigma_i$, 12 UAVs, one leave and one join): every $\sigma_i$ and both group keys were recovered.
 \end{remark}
@@ -240,11 +183,6 @@ $160\big(\tfrac{n(n-1)}{2}+n+1\big)$ bits $\approx10n^2$ bytes. GD3 sends it ``o
 $10n^3$ bytes: roughly $17.4$\,MB for $n=120$.
 \end{remark}
 
-\begin{plainbox}
-Each UAV was supposed to have a private envelope. But all envelopes sit at the same height on one public curve: any member who knows that height can see
-where every envelope is, and anyone who compares the curve before and after one UAV leaves can see whose envelope disappeared -- and from that, all the
-others.
-\end{plainbox}
 
 \begin{limitbox}
 All results use the integer reading of $\sigma_i$ (Remark~\ref{rem:typing}), which is the only reading under which GD6 is defined. CRT-based group-key

@@ -25,22 +25,24 @@ G5 & no pairings; many requests checked at once, and one bad request cannot bloc
 
 \begin{figure}[H]
 \centering
-\resizebox{\linewidth}{!}{%
 \begin{tikzpicture}[font=\sffamily\small]
-  \node[tier=deep,minimum width=4.2cm,minimum height=4.4cm] (pre) at (0,0) {};
-  \node[font=\sffamily\bfseries,text=deep] at (0,1.9) {before the mission};
-  \pic[color=deep,scale=1.3] at (0,0.8) {ta};
-  \node[font=\scriptsize\sffamily,align=center,text=deep] at (0,-0.7) {ST: master key $s$, tracing key $t$\\ RG: one credential per epoch\\ for every UAV and TUAV};
-  \node[tier=uavc,minimum width=9.6cm,minimum height=4.4cm] (fld) at (7.6,0) {};
-  \node[font=\sffamily\bfseries,text=uavc] at (7.6,1.9) {in the field: no TA, no satellite};
-  \pic[color=hoc,scale=1.3] at (5.0,0.6) {drone};
-  \node[font=\scriptsize\sffamily\bfseries,text=hoc] at (5.0,-0.1) {TUAV};
-  \foreach \x/\y in {8.0/1.0,9.3/0.4,10.4/1.1,8.6/-0.6,10.0/-0.9}{\pic[color=uavc] at (\x,\y) {drone};}
-  \draw[{Stealth}-{Stealth},very thick,uavc] (5.7,0.4) -- node[lbl,above,align=center]{UA1--UA5\\ one local round trip} (7.5,0.4);
-  \node[font=\scriptsize\sffamily,text=uavc,align=center] at (7.6,-1.6) {verify with $\Ppub$ only \;$\cdot$\; weighted batch \;$\cdot$\; per-member sealed key};
-  \draw[-{Stealth[length=3mm]},very thick,deep] (pre.east) -- node[lbl,above]{credentials} (fld.west);
-\end{tikzpicture}}
-\caption{C1 in one picture: the TA is used before the mission, never during a login.}
+  \node[draw=black,dashed,rounded corners=5pt,fill=black!4,minimum width=5.2cm,minimum height=4.4cm] (pre) at (0,0) {};
+  \node[font=\sffamily\bfseries] at (0,1.85) {Before the mission (TA online)};
+  \pic[scale=1.3] at (0,0.75) {ta};
+  \node[font=\scriptsize\sffamily,align=center] at (0,-0.75) {Setup: master key $s$, tracing key $t$\\ Registration: one credential per\\ epoch for every UAV and TUAV};
+  \node[draw=black,dashed,rounded corners=5pt,fill=white,minimum width=8.6cm,minimum height=4.4cm] (fld) at (9.0,0) {};
+  \node[font=\sffamily\bfseries] at (9.0,1.85) {During the mission (TA offline)};
+  \pic[scale=1.3] at (5.9,0.45) {drone};
+  \node[font=\scriptsize\sffamily\bfseries] at (5.9,-0.35) {TUAV};
+  \foreach \x/\y in {10.6/1.0,11.8/0.45,10.9/-0.25,12.2/-0.7}{\pic[scale=0.8] at (\x,\y) {drone};}
+  \node[font=\scriptsize\sffamily\bfseries] at (11.4,-1.25) {UAVs};
+  \draw[{Stealth[length=2.6mm]}-{Stealth[length=2.6mm]},very thick] (6.75,0.45) -- node[above,font=\scriptsize\sffamily,align=center]{join UA1--UA5:\\ one local round trip} (10.0,0.45);
+  \node[font=\scriptsize\sffamily,align=center] at (9.0,-1.8) {verify with $\Ppub$ only \;$\cdot$\; weighted batch check \;$\cdot$\; one sealed key per member};
+  \draw[-{Stealth[length=3mm]},very thick] (pre.east) -- node[above,font=\scriptsize\sffamily]{credentials} (fld.west);
+\end{tikzpicture}
+\caption{Overview of contribution C1. Left: before the mission, the TA sets up the system and issues one certificateless credential to every UAV and TUAV.
+Right: during the mission the TA is offline; a UAV joins its TUAV in one local exchange (steps UA1--UA5), the TUAV verifies requests using only the
+TA's public key $\Ppub$, and each member receives the group key sealed under its own key.}
 \label{fig:c1big}
 \end{figure}
 
@@ -107,7 +109,7 @@ $(\GK,\nu)$ and \textbf{erases} $e_i$. The TUAV erases $e_a$ after the round.
   \node[act=uavc,anchor=north] at (11,-7.1) {UA5: $K_i=\KDF(e_iE_a\cat\dots)$; open $C_i$\\ $\Rightarrow$ TUAV authentic; erase $e_i$};
   \node[draw=good,fill=good!10,rounded corners,font=\scriptsize\sffamily\bfseries,text=good] at (5.5,-9.0) {mutual authentication + shared $\GK$ in one local round trip};
 \end{tikzpicture}}
-\caption{C1 message flow. Compare Figure~\ref{fig:baseflow}: the satellite, the TA's pairings and the CRT polynomial are gone.}
+\caption{Message flow of C1 between the TUAV and $n$ UAVs. Time runs from top to bottom; boxes show local computation. The TA (centre) is never contacted. Compared with Figure~\ref{fig:baseflow}, there is no satellite link, no pairing and no CRT polynomial.}
 \label{fig:c1flow}
 \end{figure}
 
@@ -133,13 +135,6 @@ $O(\log n)$ entries; nothing else changes.
 $\pk_i=X_i+Y_i+h_i\Ppub$. (iii) $e_aE_i=e_ae_iP=e_iE_a$, and the other KDF inputs are identical.
 \end{proof}
 
-\begin{workedbox}[title={Example 7.1 -- why the weights matter (arithmetic modulo a toy group order $q=19$)}]
-Two honest signatures: keys $x_1=4,\ x_2=6$; nonces $r_1=7,\ r_2=3$; challenges $c_1=2,\ c_2=5$ $\Rightarrow$ $v_1=15$, $v_2=33\equiv14$.
-An attacker shifts them by $\Delta=5$: $v_1'=20\equiv1$, $v_2'=9$. Each one alone is now invalid.\\
-\textbf{Plain sum:} $v_1'+v_2'=10\equiv v_1+v_2$ $\Rightarrow$ the check \textcolor{bad}{\textbf{passes}}.\\
-\textbf{Weighted sum} with $\lambda_1=3,\ \lambda_2=7$: $3\cdot1+7\cdot9=66\equiv9$, but the honest value is $3\cdot15+7\cdot14=143\equiv10$
-$\Rightarrow$ \textcolor{good}{\textbf{caught}}; the gap is exactly $(\lambda_1-\lambda_2)\Delta=-20\equiv-1$.
-\end{workedbox}
 
 \section{Security}
 \begin{theorem}[Unforgeability]\label{thm:unforge}
@@ -247,17 +242,17 @@ expensive, but C1 still needs no pairing and no satellite.
 \begin{axis}[width=0.86\linewidth,height=6.4cm,ymode=log,xmin=10,xmax=200,ymin=0.5,ymax=1e6,
   xlabel={number of UAVs $n$},ylabel={key-distribution traffic (KB)},grid=major,grid style={black!8},
   tick label style={font=\small},label style={font=\small},legend style={font=\small,at={(0.02,0.97)},anchor=north west,draw=black!30}]
-  \addplot[very thick,color=bad,domain=10:200,samples=60] {20*x*(x*(x-1)/2+x+1)/1000};
+  \addplot[very thick,color=plotB,domain=10:200,samples=60] {20*x*(x*(x-1)/2+x+1)/1000};
   \addlegendentry{base: $n$ ACKs, each with all coefficients}
-  \addplot[very thick,color=uavc,domain=10:200,samples=60] {80*x/1000};
+  \addplot[very thick,color=plotA,domain=10:200,samples=60] {80*x/1000};
   \addlegendentry{C1: one broadcast, $\approx80$ bytes per member}
-  \addplot[only marks,mark=*,mark size=2.5pt,color=bad] coordinates {(120,17426)};
-  \addplot[only marks,mark=*,mark size=2.5pt,color=uavc] coordinates {(120,9.6)};
-  \node[font=\small,text=bad,anchor=south east] at (axis cs:118,20000) {17.4\,MB};
-  \node[font=\small,text=uavc,anchor=south east] at (axis cs:118,11) {9.6\,KB};
+  \addplot[only marks,mark=*,mark size=2.5pt,color=plotB] coordinates {(120,17426)};
+  \addplot[only marks,mark=*,mark size=2.5pt,color=plotA] coordinates {(120,9.6)};
+  \node[font=\small,text=plotB,anchor=south east] at (axis cs:118,20000) {17.4\,MB};
+  \node[font=\small,text=plotA,anchor=south east] at (axis cs:118,11) {9.6\,KB};
 \end{axis}
 \end{tikzpicture}
-\caption{Traffic to distribute one group key (log scale), computed from the message formats: $\Theta(n^3)$ for the base scheme against $\Theta(n)$ for C1.}
+\caption{Traffic needed to distribute one group key against the number of UAVs $n$ (logarithmic vertical axis), computed from the message formats. The base scheme sends all polynomial coefficients to each UAV, about $10n^3$ bytes in total; C1 sends one broadcast with about 80 bytes per member. The marked points are the values for $n=120$.}
 \label{fig:traffic}
 \end{figure}
 

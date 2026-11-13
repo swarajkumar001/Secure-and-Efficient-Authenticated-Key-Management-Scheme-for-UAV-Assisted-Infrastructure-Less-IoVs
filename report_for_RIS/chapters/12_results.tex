@@ -31,12 +31,12 @@ A captured TUAV cannot impersonate the TUAV & \no & \yes & Thm.~\ref{thm:half}, 
 \textbf{Attack} & \textbf{Against the base paper} & \textbf{Against our design}\\
 \midrule
 TA (or thief of its database) logs in as a UAV & \textcolor{bad}{\textbf{succeeds}} (Alg.~\ref{alg:forge}) & fails: needs $x_i$ (ECDLP)\\
-Removed UAV computes the next group key & \textcolor{bad}{\textbf{succeeds}} (Ex.~5.1) & fails: no entry, fresh key\\
-New UAV opens the group's recorded past & \textcolor{bad}{\textbf{succeeds}} (Ex.~5.1) & fails: rekey on arrival\\
-Eavesdropper compares two broadcasts & \textcolor{bad}{\textbf{succeeds}} (Ex.~5.2, 5.3) & fails: nothing to compare\\
-Thief of a UAV's long-term key opens old sessions & \textcolor{bad}{\textbf{succeeds}} (Ex.~6.1) & fails: CDH on erased exponents\\
+Removed UAV computes the next group key & \textbf{succeeds} (Cor.~\ref{cor:revoke}) & fails: no entry, fresh key\\
+New UAV opens the group's recorded past & \textbf{succeeds} (Cor.~\ref{cor:backward}) & fails: rekey on arrival\\
+Eavesdropper compares two broadcasts & \textcolor{bad}{\textbf{succeeds}} (Thm.~\ref{thm:outsider}) & fails: nothing to compare\\
+Thief of a UAV's long-term key opens old sessions & \textcolor{bad}{\textbf{succeeds}} (Thm.~\ref{thm:retro}) & fails: CDH on erased exponents\\
 Captured old TUAV mints tickets / poses as the new TUAV & -- (no handover) & fails: A2, A7\\
-Captured TUAV keeps acting as the TUAV & \textcolor{bad}{\textbf{succeeds}} ($s_{tu}$ is in the drone) & fails: half a key (Ex.~10.1)\\
+Captured TUAV keeps acting as the TUAV & \textcolor{bad}{\textbf{succeeds}} ($s_{tu}$ is in the drone) & fails: half a key (Thm.~\ref{thm:half})\\
 \bottomrule
 \end{tabularx}
 \end{center}
@@ -70,7 +70,7 @@ Checking an eviction certificate ($t=2$) & -- & $\approx3.6$\,ms\\
 \toprule
 \textcolor{good}{\textbf{We claim}} & \textcolor{bad}{\textbf{We do not claim}}\\
 \midrule
-three flaws in the base paper, each with a theorem, a proof and a worked example & that the outsider attack works from a \emph{single} broadcast or for mixed join-and-leave updates\\
+three flaws in the base paper, each with a theorem and a proof & that the outsider attack works from a \emph{single} broadcast or for mixed join-and-leave updates\\
 a design that authenticates and keys UAVs with the TA offline & that our TA cannot cheat at all (we reach Girault level 2, not 3)\\
 reduction-based security arguments for C1 and C4, symbolic verification for C2 & tight reductions, or security against every possible attack\\
 C2, C3 and C4 as new \emph{uses} of known tools & new cryptographic primitives\\

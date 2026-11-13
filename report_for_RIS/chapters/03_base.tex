@@ -1,5 +1,5 @@
 % =====================================================================
-\chapter{The base scheme, exactly as printed}\label{ch:base}
+\chapter{The base scheme in detail}\label{ch:base}
 % =====================================================================
 Everything in this chapter is taken from Sections~III--V of~\cite{tan2023}. Equations are copied as printed; where the paper's wording matters we
 quote it.
@@ -7,44 +7,10 @@ quote it.
 \section{System model}
 \begin{figure}[H]
 \centering
-\resizebox{0.96\linewidth}{!}{%
-\begin{tikzpicture}[font=\sffamily\small]
-  % UAV network
-  \node[tier=uavc,minimum width=6.4cm,minimum height=3.6cm] (un) at (0,3.2) {};
-  \node[font=\sffamily\bfseries,text=uavc] at (0,4.75) {UAV network (battery, $<1$\,h)};
-  \foreach \x/\y in {-2.2/3.6,-0.6/2.5,0.9/3.8,2.3/2.6,-1.6/1.9}{\pic[color=uavc] at (\x,\y) {drone};}
-  \draw[uavc,dashed] (-2.2,3.6) -- (-0.6,2.5) -- (0.9,3.8) -- (2.3,2.6) (-0.6,2.5) -- (-1.6,1.9);
-  \node[font=\scriptsize\sffamily,text=uavc] at (0.2,1.55) {U2U links};
-  % TUAV + ECRV
-  \node[tier=hoc,minimum width=4.2cm,minimum height=6.6cm] (tz) at (5.6,1.7) {};
-  \node[font=\sffamily\bfseries,text=hoc] at (5.6,4.75) {tethered UAV};
-  \pic[color=hoc,scale=1.5] at (5.6,3.6) {drone};
-  \draw[hoc,line width=1.6pt,decorate,decoration={snake,amplitude=0.6mm,segment length=4mm}] (5.6,3.0) -- (5.6,0.9);
-  \node[font=\scriptsize\sffamily,text=hoc,anchor=east,align=right] at (5.4,2.0) {tether:\\ power\,+\,data};
-  \pic[color=hoc,scale=1.7] at (5.6,0.4) {truck};
-  \node[font=\scriptsize\sffamily\bfseries,text=hoc] at (5.6,-0.35) {ECRV (fire truck)};
-  % satellite and TA
-  \node[tier=deep,minimum width=4.0cm,minimum height=6.6cm] (sz) at (10.4,1.7) {};
-  \node[font=\sffamily\bfseries,text=deep] at (10.4,4.75) {satellite network};
-  \pic[color=deep,scale=1.2] at (10.4,3.6) {sat};
-  \pic[color=deep,scale=1.5] at (10.4,0.2) {ta};
-  \node[font=\scriptsize\sffamily\bfseries,text=deep] at (10.4,-0.55) {TA (remote server)};
-  % vehicles
-  \node[tier=vehc,minimum width=6.4cm,minimum height=2.6cm] (vn) at (0,-0.6) {};
-  \node[font=\sffamily\bfseries,text=vehc] at (0,-1.65) {vehicular network (V2V)};
-  \foreach \x/\y in {-2.2,-0.6,1.0,2.4}{\pic[color=vehc,scale=1.1] at (\x,-0.4) {car};}
-  % RSU (dysfunctional)
-  \pic[color=black!45,scale=1.2] at (5.6,-2.55) {tower};
-  \draw[bad,line width=2pt] (5.15,-3.1) -- (6.05,-2.0) (5.15,-2.0) -- (6.05,-3.1);
-  \node[font=\scriptsize\sffamily\bfseries,text=bad] at (5.6,-3.5) {RSUs dysfunctional};
-  % links
-  \draw[{Stealth}-{Stealth},very thick,hoc] (3.25,3.2) -- (4.75,3.5);
-  \draw[{Stealth}-{Stealth},very thick,uavc] (0,1.35) -- (0,0.75);
-  \draw[{Stealth}-{Stealth},very thick,deep,dashed] (6.6,0.7) -- node[lbl,above,sloped]{space link} (9.6,3.3);
-  \draw[{Stealth}-{Stealth},very thick,deep,dashed] (10.4,2.9) -- (10.4,1.0);
-\end{tikzpicture}}
-\caption{System model of~\cite{tan2023} (redrawn from its Fig.~1): a TUAV, powered through a tether by the ECRV, replaces the failed RSUs; the TA is reached
-over a satellite link.}
+\includegraphics[width=0.78\linewidth]{paper_fig1_system_model.png}
+\caption{System model of the TUAV-assisted infrastructure-less IoV, reproduced from Fig.~1 of the base paper~\cite{tan2023}. The UAV network (top left)
+talks to the tethered UAV, which is powered through a cable by the ECRV. The ECRV reaches the trusted authority (TA) through the satellite network.
+Vehicles (bottom left) communicate through the UAV network because the roadside unit (RSU) is out of service.}
 \label{fig:sysmodel}
 \end{figure}
 
@@ -57,17 +23,19 @@ control center, maintains the wired power supply to the connected TUAV.'' \hfill
 \section{The protocol at a glance}
 \begin{figure}[H]
 \centering
-\resizebox{\linewidth}{!}{%
-\begin{tikzpicture}[font=\sffamily\small,node distance=0.55cm]
-  \node[fproc=deep,text width=3.0cm] (is) {\textbf{IS1--IS5}\\ TA issues $\langle id_{tu},s_{tu}\rangle$, $\langle id_i,s_i\rangle$ and \emph{stores} them; TUAV beacons $R_{tu},Q_{tu}$};
-  \node[fproc=uavc,text width=3.0cm,right=of is] (us) {\textbf{US1--US3}\\ UAV picks $r_i$, sends\\ $\langle \ts_2,\ID_i,\xi_i,\upsilon_i,\Gamma_i\rangle$};
-  \node[fproc=deep,text width=3.2cm,right=of us] (ga) {\textbf{GA1--GA4}\\ TUAV $\to$ TA (satellite): TA uses $s_i$, 3 pairings per UAV; TUAV checks one product};
-  \node[fproc=hoc,text width=3.2cm,right=of ga] (gd) {\textbf{GD1--GD6}\\ TUAV builds $\Lambda(x)$ by CRT; members get $\kappa_{tu}=\Lambda(\sigma_i)\bmod\sigma_i$};
-  \node[fproc=hoc,text width=2.9cm,right=of gd] (du) {\textbf{DU1--DU2}\\ join/leave: new $\Lambda^*(x)$, members \emph{keep} their $\sigma_i$};
-  \draw[flow] (is) -- (us); \draw[flow] (us) -- (ga); \draw[flow] (ga) -- (gd); \draw[flow] (gd) -- (du);
-  \draw[flow,dashed] (du.south) -- ++(0,-0.5) -| node[lbl,pos=0.25,below]{every membership change} (gd.south);
-\end{tikzpicture}}
-\caption{The five phases of the base scheme.}
+\begin{tikzpicture}[font=\small,ph/.style={draw=black,fill=black!6,rounded corners=2pt,text width=11.4cm,align=left,inner sep=5pt},
+  tg/.style={draw=black,fill=black!75,text=white,font=\small\bfseries,minimum width=1.9cm,minimum height=0.75cm}]
+  \node[ph] (is) at (0,0) {\textbf{Initialisation} (TA, TUAV). The TA gives the TUAV $\langle id_{tu},s_{tu}\rangle$ and every UAV $\langle id_i,s_i\rangle$, and keeps a copy. The TUAV broadcasts $\langle \ts_{tu},\ID_{tu},R_{tu},Q_{tu}\rangle$.};
+  \node[ph,below=0.45cm of is] (us) {\textbf{UAV signing} (each UAV). The UAV picks $r_i$, computes $\xi_i=h_1(r_i)$, $\ID_i$, $\upsilon_i$ and the credential $\Gamma_i$, and sends $\langle \ts_2,\ID_i,\xi_i,\upsilon_i,\Gamma_i\rangle$ to the TUAV.};
+  \node[ph,below=0.45cm of us] (ga) {\textbf{Group authentication} (TUAV and TA, over the satellite). The TA uses $s_i$ to compute $\sigma_i,\psi_i,\mu_i,\delta_i$ (three pairings per UAV); the TUAV checks all UAVs with one product equation.};
+  \node[ph,below=0.45cm of ga] (gd) {\textbf{Group key distribution} (TUAV to UAVs). The TUAV builds $\Lambda(x)=\kappa_{tu}\sum_i\omega_i\varphi_i+\prod_i(x-\sigma_i)$ and sends its coefficients; each UAV computes $\kappa_{tu}=\Lambda(\sigma_i)\bmod\sigma_i$.};
+  \node[ph,below=0.45cm of gd] (du) {\textbf{Dynamic key updating} (TUAV). When UAVs join or leave, the TUAV builds a new $\Lambda^{*}(x)$ with a new key $\kappa^{*}_{tu}$; remaining members keep their $\sigma_i$.};
+  \foreach \a/\b in {is/us,us/ga,ga/gd,gd/du}{\draw[-{Stealth[length=2.4mm]},thick] (\a.south) -- (\b.north);}
+  \foreach \n/\t in {is/IS1--IS5,us/US1--US3,ga/GA1--GA4,gd/GD1--GD6,du/DU1--DU2}{\node[tg,left=0.25cm of \n] {\t};}
+  \draw[-{Stealth[length=2.4mm]},thick,dashed] (du.east) -- ++(0.6,0) |- node[pos=0.25,right,font=\scriptsize,align=left]{on every\\ join or leave} (gd.east);
+\end{tikzpicture}
+\caption{The five phases of the base scheme, in order. The step labels on the left (IS, US, GA, GD, DU) are the ones used in Section~IV of the paper.
+Solid arrows show the normal order; the dashed arrow shows that a key update repeats the key-distribution computation.}
 \label{fig:phases}
 \end{figure}
 
@@ -91,7 +59,7 @@ control center, maintains the wired power supply to the connected TUAV.'' \hfill
   \node[draw=deep,fill=deep!6,rounded corners,font=\scriptsize\sffamily,text=deep,align=center] at (9.9,-10.3)
     {dashed arrows cross the satellite link; the coefficients $\{a_k\}$ travel in the clear};
 \end{tikzpicture}}
-\caption{Message flow of the base scheme.}
+\caption{Message flow of the base scheme between a UAV $\U_i$, the TUAV and the TA. Time runs from top to bottom. Solid arrows are local radio messages; dashed arrows cross the satellite link. Boxes show the local computation of each entity.}
 \label{fig:baseflow}
 \end{figure}
 

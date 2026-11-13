@@ -61,7 +61,7 @@ Every step costs a constant number of hash evaluations and scalar multiplication
   \draw[flow] (s) -- (a); \draw[flow] (a) -- (b); \draw[flow] (b) -- (c); \draw[flow] (c) -- (d);
   \draw[flow] (d) -- node[lbl,right]{always yes (Lemma~\ref{lem:ga3})} (e);
 \end{tikzpicture}}
-\caption{Flowchart of the TA-forgery attack. Nothing in the flow depends on a value chosen by the real UAV.}
+\caption{Flowchart of the TA-forgery attack (Algorithm~\ref{alg:forge}). Starting from the stored pair $\langle id_i,s_i\rangle$, the forger builds a request with a public $\xi'$; the honest TUAV and TA then accept it. No step uses a value chosen by the real UAV.}
 \label{fig:f1flow}
 \end{figure}
 
@@ -88,11 +88,6 @@ The reduction of Theorem~1 lets an adversary $\mathcal A_1$ forge requests, but 
 breached authority (a ``Type~II'' adversary in certificateless terminology~\cite{alriyami}) is outside the model, which is exactly the case of F1.
 \end{remark}
 
-\begin{plainbox}
-It is like a locksmith who made your house key and kept a copy. If something goes missing you cannot prove it was not the locksmith -- and if the
-locksmith's cabinet is robbed, the thief can open every house in town. In a disaster zone, one stolen TA database lets an attacker log in as
-\emph{every} UAV of the swarm.
-\end{plainbox}
 
 \begin{fixbox}[title={How C1 removes F1 (Chapter~\ref*{ch:c1})}]
 Each UAV adds its own secret $x$ that never leaves the device: $\sk=x+d$. The TA knows only the partial key $d$, so it cannot sign under the UAV's
