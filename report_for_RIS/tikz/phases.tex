@@ -1,0 +1,11 @@
+\begin{tikzpicture}[font=\small,ph/.style={draw=uavc,fill=uavc!6,rounded corners=2pt,text width=11.4cm,align=left,inner sep=5pt},
+  tg/.style={draw=deep,fill=deep,text=white,font=\small\bfseries,minimum width=1.9cm,minimum height=0.75cm}]
+  \node[ph] (is) at (0,0) {\textbf{Initialisation} (TA, TUAV). The TA gives the TUAV $\langle id_{tu},s_{tu}\rangle$ and every UAV $\langle id_i,s_i\rangle$, and keeps a copy. The TUAV broadcasts $\langle \ts_{tu},\ID_{tu},R_{tu},Q_{tu}\rangle$.};
+  \node[ph,below=0.45cm of is] (us) {\textbf{UAV signing} (each UAV). The UAV picks $r_i$, computes $\xi_i=h_1(r_i)$, $\ID_i$, $\upsilon_i$ and the credential $\Gamma_i$, and sends $\langle \ts_2,\ID_i,\xi_i,\upsilon_i,\Gamma_i\rangle$ to the TUAV.};
+  \node[ph,below=0.45cm of us] (ga) {\textbf{Group authentication} (TUAV and TA, over the satellite). The TA uses $s_i$ to compute $\sigma_i,\psi_i,\mu_i,\delta_i$ (three pairings per UAV); the TUAV checks all UAVs with one product equation.};
+  \node[ph,below=0.45cm of ga] (gd) {\textbf{Group key distribution} (TUAV to UAVs). The TUAV builds $\Lambda(x)=\kappa_{tu}\sum_i\omega_i\varphi_i+\prod_i(x-\sigma_i)$ and sends its coefficients; each UAV computes $\kappa_{tu}=\Lambda(\sigma_i)\bmod\sigma_i$.};
+  \node[ph,below=0.45cm of gd] (du) {\textbf{Dynamic key updating} (TUAV). When UAVs join or leave, the TUAV builds a new $\Lambda^{*}(x)$ with a new key $\kappa^{*}_{tu}$; remaining members keep their $\sigma_i$.};
+  \foreach \a/\b in {is/us,us/ga,ga/gd,gd/du}{\draw[-{Stealth[length=2.4mm]},thick] (\a.south) -- (\b.north);}
+  \foreach \n/\t in {is/IS1--IS5,us/US1--US3,ga/GA1--GA4,gd/GD1--GD6,du/DU1--DU2}{\node[tg,left=0.25cm of \n] {\t};}
+  \draw[-{Stealth[length=2.4mm]},thick,dashed] (du.east) -- ++(0.6,0) |- node[pos=0.25,right,font=\scriptsize,align=left]{on every\\ join or leave} (gd.east);
+\end{tikzpicture}

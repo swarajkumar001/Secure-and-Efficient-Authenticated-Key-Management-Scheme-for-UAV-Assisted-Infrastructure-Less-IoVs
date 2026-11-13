@@ -1,0 +1,11 @@
+\resizebox{0.8\linewidth}{!}{%
+\begin{tikzpicture}[font=\sffamily\small,node distance=0.5cm]
+  \node[fio=quorum,text width=2.6cm] (in) {receive a certificate $\mathcal C$};
+  \node[fdec=quorum,right=of in] (v1) {V1: $\ge t$\\ distinct?};
+  \node[fdec=quorum,right=of v1] (v2) {V2--V3:\\ target ok?};
+  \node[fdec=quorum,right=of v2] (v4) {V4: batch\\ holds?};
+  \node[fstart=good,right=of v4,text width=2.6cm] (ok) {block target;\\ full join to a neighbour};
+  \node[fstart=bad,below=1.1cm of v2,text width=3.0cm] (no) {ignore $\mathcal C$\\ (keep the current TUAV)};
+  \draw[flow] (in) -- (v1); \draw[flow] (v1) -- node[lbl,above]{yes} (v2); \draw[flow] (v2) -- node[lbl,above]{yes} (v4); \draw[flow] (v4) -- node[lbl,above]{yes} (ok);
+  \draw[flow] (v1) |- node[lbl,pos=0.3,left]{no} (no); \draw[flow] (v2) -- node[lbl,right]{no} (no); \draw[flow] (v4) |- node[lbl,pos=0.3,right]{no} (no);
+\end{tikzpicture}}

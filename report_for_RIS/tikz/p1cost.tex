@@ -1,0 +1,12 @@
+\begin{tikzpicture}
+\begin{axis}[width=0.88\linewidth,height=6.6cm,xmin=0,xmax=120,ymin=0,ymax=2100,xlabel={Number of UAVs $n$},ylabel={Group-authentication time (ms)},
+  xtick={0,20,...,120},grid=major,grid style={black!10},legend cell align=left,legend style={font=\footnotesize,at={(0.02,0.98)},anchor=north west,draw=black!40},
+  tick label style={font=\small},label style={font=\small},mark repeat=2,scaled y ticks=false,y tick label style={/pgf/number format/.cd,fixed,1000 sep={}}]
+  \addplot[thick,color=plotB,mark=square*,mark size=1.6pt,domain=0:120,samples=13] {16.2292*x+37.0868}; \addlegendentry{Kumar et al.: $16.23n+37.09$}
+  \addplot[thick,color=plotD,mark=triangle*,mark size=2pt,domain=0:120,samples=13] {13.6534*x+29.7952}; \addlegendentry{Xu et al.: $13.65n+29.80$}
+  \addplot[thick,color=plotC,mark=diamond*,mark size=2pt,domain=0:120,samples=13] {5.4252*x+45.2124}; \addlegendentry{Mei et al.: $5.43n+45.21$}
+  \addplot[thick,color=plotE,mark=o,mark size=1.6pt,domain=0:120,samples=13] {2.7126*x+7.2232}; \addlegendentry{Ali et al.: $2.71n+7.22$}
+  \addplot[very thick,color=plotA,mark=*,mark size=1.6pt,domain=0:120,samples=13] {1.2524*x+0.9054}; \addlegendentry{Base paper (TUAV side): $1.25n+0.91$}
+  \node[font=\footnotesize,anchor=south east] at (axis cs:119,165) {151 ms at $n=120$};
+\end{axis}
+\end{tikzpicture}

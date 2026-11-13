@@ -1,0 +1,18 @@
+\resizebox{0.9\linewidth}{!}{%
+\begin{tikzpicture}[font=\sffamily\small]
+  \node[ent=hoc]  (d) at (0,0)   {Drone (share $a$)};
+  \node[ent=vehc] (c) at (6.6,0) {Chip in ECRV (share $g$)};
+  \node[ent=uavc] (v) at (13.2,0) {UAV / neighbour};
+  \foreach \n in {d,c,v}{\draw[life] (\n.south) -- ++(0,-10.4);}
+  \node[act=hoc,anchor=north] at (0,-0.85) {pick $r_A$; \;$R_A=r_AP$; \;$C_A=H(R_A)$};
+  \draw[msg=hoc] (0,-1.9) -- node[lbl,above]{\ding{172}\ $m,\ \ts,\ C_A$ \;(tether)} (6.6,-1.9);
+  \node[act=vehc,anchor=north] at (6.6,-2.2) {tether alive? type allowed?\\ $\ts$ fresh? one session?\\ pick $r_G$; \;$R_G=r_GP$};
+  \draw[msg=vehc] (6.6,-3.8) -- node[lbl,above]{\ding{173}\ $R_G$} (0,-3.8);
+  \draw[msg=hoc] (0,-4.6) -- node[lbl,above]{\ding{174}\ $R_A$ \;(chip checks $H(R_A)=C_A$)} (6.6,-4.6);
+  \node[act=vehc,anchor=north] at (6.6,-4.9) {$R=R_A+R_G$; \;$c=\Ht(\dots R\dots)$\\ $v_G=r_G+c\,g$; \;log};
+  \draw[msg=vehc] (6.6,-6.3) -- node[lbl,above]{\ding{175}\ $v_G$} (0,-6.3);
+  \node[act=hoc,anchor=north] at (0,-6.6) {$v=r_A+c\,a+v_G$};
+  \draw[msg=hoc] (0,-7.6) -- node[lbl,above]{signed beacon / reply / vote $(R,v)$ \;(radio)} (13.2,-7.6);
+  \node[act=uavc,anchor=north] at (13.2,-7.9) {$vP\overset{?}{=}R+c\,\pk$\\ (unchanged check)};
+  \node[draw=tether,fill=tether!8,rounded corners,font=\scriptsize\sffamily\bfseries,text=tether] at (3.3,-9.6) {two short exchanges over the wire, about 200 bytes};
+\end{tikzpicture}}

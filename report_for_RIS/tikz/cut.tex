@@ -1,0 +1,10 @@
+\resizebox{0.9\linewidth}{!}{%
+\begin{tikzpicture}[font=\sffamily\small]
+  \draw[-{Stealth[length=3mm]},very thick,black!60] (0,0) -- (15.4,0) node[right]{time};
+  \foreach \x/\t/\c in {0.8/{$t=0$}/bad,4.6/{$\approx0$}/vehc,8.6/{$\le\delta$}/uavc,12.6/{then}/good}{
+     \fill[\c] (\x,0) circle (0.14); \node[below=4pt,font=\scriptsize\sffamily\bfseries,text=\c] at (\x,0) {\t};}
+  \node[card=bad,text width=3.3cm,anchor=south] at (0.8,0.45) {tether cut; drone lands or is taken\\[2pt] \textbf{chip refuses for ever}};
+  \node[card=vehc,text width=3.4cm,anchor=south] at (4.6,0.45) {ECRV broadcasts the stored \textbf{kill notice}; neighbours drop the TUAV};
+  \node[card=uavc,text width=3.4cm,anchor=south] at (8.6,0.45) {no new beacon can be signed; old ones expire after $\delta$; members leave};
+  \node[card=good,text width=3.4cm,anchor=south] at (12.6,0.45) {members re-join a neighbour by the \textbf{full join} (fresh ECDH); old keys useless};
+\end{tikzpicture}}
